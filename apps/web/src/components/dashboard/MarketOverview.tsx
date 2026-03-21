@@ -33,7 +33,7 @@ function formatPrice(price: number, market: Market) {
 
 export default function MarketOverview() {
   return (
-    <div className="bg-white rounded-[var(--radius-card)] p-5">
+    <div className="bg-white rounded-[var(--radius-card)] p-5 card-hover">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-700">市場概覽</h3>
         <Link

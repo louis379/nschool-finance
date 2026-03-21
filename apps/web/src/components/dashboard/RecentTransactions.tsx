@@ -23,7 +23,7 @@ const mockTransactions = [
 
 export default function RecentTransactions() {
   return (
-    <div className="bg-white rounded-[var(--radius-card)] p-5">
+    <div className="bg-white rounded-[var(--radius-card)] p-5 card-hover">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-700">最近交易</h3>
         <Link

@@ -35,7 +35,7 @@ export default function FinancialHealth() {
   const dashOffset = CIRCUMFERENCE - (healthScore / 100) * CIRCUMFERENCE;
 
   return (
-    <div className="bg-white rounded-[var(--radius-card)] p-5">
+    <div className="bg-white rounded-[var(--radius-card)] p-5 card-hover">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-700">財務健康分數</h3>
         <Link
