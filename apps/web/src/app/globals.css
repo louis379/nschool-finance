@@ -20,10 +20,10 @@
   --color-gold-400: #FDCB6E;
   --color-gold-500: #F0B429;
 
-  --color-up: #4CAF50;
-  --color-up-light: #E8F5E9;
-  --color-down: #F44336;
-  --color-down-light: #FFEBEE;
+  --color-up: #22C55E;
+  --color-up-light: #DCFCE7;
+  --color-down: #EF4444;
+  --color-down-light: #FEE2E2;
 
   /* Font */
   --font-sans: "Noto Sans TC", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -33,27 +33,48 @@
   --radius-button: 12px;
 }
 
-/* Smooth scrolling */
+/* Smooth scrolling & font rendering */
 html {
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #F8F7FF;
+  background-color: #F4F2FF;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-primary-200);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary-400);
+}
+
+/* Smooth focus rings */
+*:focus-visible {
+  outline: 2px solid var(--color-primary-400);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
