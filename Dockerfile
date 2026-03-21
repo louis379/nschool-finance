@@ -25,7 +25,7 @@ COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 # Copy public dir if it exists
 COPY --from=builder /app/apps/web/public* ./apps/web/public/
 USER nextjs
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 8080
+ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 CMD ["node", "apps/web/server.js"]
