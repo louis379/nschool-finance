@@ -1,8 +1,0 @@
-{
-  "provider": "nodejs",
-  "framework": "next.js",
-  "root_directory": "apps/web",
-  "build_command": "cd ../.. && pnpm install && pnpm turbo build --filter=@nschool/web",
-  "start_command": "npx next start -p ${PORT:-3000}",
-  "node_version": "20"
-}
