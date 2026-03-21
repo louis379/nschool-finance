@@ -34,7 +34,7 @@ const actions: Action[] = [
     shadow: 'shadow-emerald-400/40',
   },
   {
-    href: '/trade',
+    href: '/calculator',
     icon: Calculator,
     label: '複利計算',
     gradient: 'from-amber-400 to-orange-500',

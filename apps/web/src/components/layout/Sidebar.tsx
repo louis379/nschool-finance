@@ -41,7 +41,7 @@ const menuGroups: MenuGroup[] = [
       { href: '/trade', icon: BarChart3,   label: '模擬交易' },
       { href: '/trade', icon: Eye,         label: '觀察名單' },
       { href: '/trade', icon: TrendingUp,  label: '投資組合' },
-      { href: '/trade', icon: Calculator,  label: '複利計算器' },
+      { href: '/calculator', icon: Calculator,  label: '複利計算器' },
     ],
   },
   {
@@ -78,7 +78,9 @@ export default function Sidebar() {
             </h3>
             <div className="space-y-0.5">
               {group.items.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = item.href === '/'
+                  ? pathname === '/'
+                  : pathname.startsWith(item.href);
                 const Icon = item.icon;
                 return (
                   <Link

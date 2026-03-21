@@ -30,7 +30,9 @@ export default function BottomNav() {
       <div className="bg-white/90 backdrop-blur-lg border-t border-gray-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-around h-16 px-2 max-w-lg mx-auto">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = item.href === '/'
+              ? pathname === '/'
+              : pathname.startsWith(item.href);
             const Icon = item.icon;
 
             if (item.isCenter) {
