@@ -194,15 +194,52 @@ export default function TradePage() {
             </div>
           </div>
 
-          {/* Stock Table */}
-          <div className="overflow-x-auto">
+          {/* Mobile Card List (sm only) */}
+          <div className="md:hidden space-y-2">
+            {stocks.map((stock) => {
+              const isUp = stock.change >= 0;
+              const isFav = favorites.has(stock.symbol);
+              return (
+                <div key={stock.symbol} className="flex items-center justify-between py-3 px-1 border-b border-gray-50 last:border-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <button
+                      onClick={() => toggleFavorite(stock.symbol)}
+                      className="p-1 shrink-0"
+                      aria-label={isFav ? '移除追蹤' : '加入追蹤'}
+                    >
+                      <Star className={`w-4 h-4 ${isFav ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}`} />
+                    </button>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-800">{stock.symbol}</p>
+                      <p className="text-xs text-gray-400 truncate">{stock.name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-800 tabular-nums">{stock.price.toLocaleString()}</p>
+                      <div className={`inline-flex items-center gap-0.5 text-xs font-semibold ${isUp ? 'text-up' : 'text-down'}`}>
+                        {isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => openModal(stock, 'buy')} className="min-h-[36px] px-2.5 rounded-lg bg-up/10 text-up text-xs font-bold hover:bg-up/20 transition-colors">買</button>
+                      <button onClick={() => openModal(stock, 'sell')} className="min-h-[36px] px-2.5 rounded-lg bg-down/10 text-down text-xs font-bold hover:bg-down/20 transition-colors">賣</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100">
                   <th className="text-left text-xs font-semibold text-gray-400 py-3 px-2">代號 / 名稱</th>
                   <th className="text-right text-xs font-semibold text-gray-400 py-3 px-2">現價</th>
                   <th className="text-right text-xs font-semibold text-gray-400 py-3 px-2">漲跌幅</th>
-                  <th className="text-right text-xs font-semibold text-gray-400 py-3 px-2 hidden md:table-cell">成交量</th>
+                  <th className="text-right text-xs font-semibold text-gray-400 py-3 px-2">成交量</th>
                   <th className="text-center text-xs font-semibold text-gray-400 py-3 px-2">操作</th>
                 </tr>
               </thead>

@@ -33,16 +33,20 @@
   --radius-button: 12px;
 }
 
-/* Smooth scrolling & font rendering */
+/* Base */
 html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* iOS: allow safe area padding */
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   font-family: var(--font-sans);
   background-color: #F4F2FF;
+  /* iOS momentum scrolling */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Custom scrollbar */
@@ -66,6 +70,44 @@ body {
   outline: 2px solid var(--color-primary-400);
   outline-offset: 2px;
   border-radius: 8px;
+}
+
+/* Touch: prevent callout on long-press for interactive elements */
+button,
+a,
+[role="button"] {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Minimum touch target size */
+button,
+[role="button"],
+a {
+  min-height: 36px;
+  min-width: 36px;
+}
+
+/* Range input styling */
+input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--color-primary-100);
+  border-radius: 999px;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary-500);
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(108, 92, 231, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
 }
 
 /* Reduce motion for accessibility */
