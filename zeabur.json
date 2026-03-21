@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.zeabur.app/template.json",
+  "apiVersion": "zeabur.com/v1",
+  "kind": "Template",
+  "metadata": {
+    "name": "nSchool Finance",
+    "description": "nSchool 財經新手 APP & RWD 網站"
+  },
+  "spec": {
+    "services": [
+      {
+        "name": "web",
+        "template": "NEXTJS",
+        "source": {
+          "subDir": "apps/web"
+        },
+        "env": {
+          "NEXT_PUBLIC_SUPABASE_URL": {
+            "description": "Supabase 專案 URL"
+          },
+          "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
+            "description": "Supabase Anonymous Key"
+          },
+          "SUPABASE_SERVICE_ROLE_KEY": {
+            "description": "Supabase Service Role Key"
+          },
+          "ANTHROPIC_API_KEY": {
+            "description": "Claude API Key"
+          },
+          "ALPHA_VANTAGE_API_KEY": {
+            "description": "Alpha Vantage API Key for US stocks"
+          },
+          "NEXT_PUBLIC_APP_URL": {
+            "default": "https://finance.nschool.tw"
+          }
+        },
+        "ports": [3000],
+        "buildCommand": "cd ../.. && pnpm install && pnpm turbo build --filter=@nschool/web",
+        "startCommand": "cd apps/web && pnpm start"
+      }
+    ]
+  }
+}
