@@ -171,9 +171,9 @@ export default function DashboardPage() {
 
       {/* AI Analysis Modal */}
       {showAiModal && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAiModal(false)} />
-          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop" onClick={() => setShowAiModal(false)} />
+          <div className="relative bg-white rounded-b-3xl md:rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] overflow-hidden flex flex-col modal-content">
             <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-primary-100 flex items-center justify-center">

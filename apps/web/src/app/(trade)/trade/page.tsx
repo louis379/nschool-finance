@@ -508,11 +508,9 @@ export default function TradePage() {
 
       {/* Trade Modal */}
       {tradeModal && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setTradeModal(null)} />
-          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-fade-in">
-            {/* Handle */}
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5 md:hidden" />
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop" onClick={() => setTradeModal(null)} />
+          <div className="relative bg-white rounded-b-3xl md:rounded-2xl w-full max-w-sm p-6 pt-[max(1.5rem,env(safe-area-inset-top))] shadow-2xl modal-content">
 
             <div className="flex items-center justify-between mb-5">
               <div>

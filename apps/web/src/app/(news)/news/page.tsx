@@ -226,9 +226,9 @@ export default function NewsPage() {
 
       {/* Article Detail Modal */}
       {selectedArticle && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedArticle(null)} />
-          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop" onClick={() => setSelectedArticle(null)} />
+          <div className="relative bg-white rounded-b-3xl md:rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col modal-content">
             {/* Modal Header */}
             <div className="flex items-center gap-3 p-5 border-b border-gray-100 shrink-0">
               <button onClick={() => setSelectedArticle(null)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors shrink-0">
