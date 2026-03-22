@@ -140,10 +140,31 @@ export default function ProfilePage() {
     { icon: HelpCircle, label: '幫助中心', description: '常見問題 & 聯絡客服',       panel: 'help',          iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500' },
   ];
 
-  const learningProgress = [
-    { label: 'Level 1 理財觀念', percent: 63, color: 'bg-amber-400' },
-    { label: 'Level 2 投資基礎', percent: 30, color: 'bg-primary-400' },
-  ];
+  const [learningProgress, setLearningProgress] = useState([
+    { label: 'Level 1 理財觀念', percent: 0, color: 'bg-amber-400', total: 8 },
+    { label: 'Level 2 投資基礎', percent: 0, color: 'bg-primary-400', total: 10 },
+    { label: 'Level 3 技術分析', percent: 0, color: 'bg-blue-400', total: 12 },
+  ]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('nschool-lesson-progress');
+      if (raw) {
+        const progress = JSON.parse(raw);
+        const modules = [
+          { id: '1', label: 'Level 1 理財觀念', total: 8, color: 'bg-amber-400' },
+          { id: '2', label: 'Level 2 投資基礎', total: 10, color: 'bg-primary-400' },
+          { id: '3', label: 'Level 3 技術分析', total: 12, color: 'bg-blue-400' },
+        ];
+        setLearningProgress(modules.map((m) => ({
+          label: m.label,
+          color: m.color,
+          total: m.total,
+          percent: progress[m.id] ? Math.round((progress[m.id].length / m.total) * 100) : 0,
+        })));
+      }
+    } catch {}
+  }, []);
 
   return (
     <AppLayout>

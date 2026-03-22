@@ -34,7 +34,7 @@ type Transaction = {
   amount: number; date: string; account: string;
 };
 
-const defaultTransactions: Transaction[] = [
+const sampleTransactions: Transaction[] = [
   { id: '1', category: '餐飲',   description: '午餐 - 便當',       amount: -120,   date: '2026-03-21', account: '台銀帳戶' },
   { id: '2', category: '交通',   description: 'YouBike 租借',       amount: -30,    date: '2026-03-21', account: '台銀帳戶' },
   { id: '3', category: '薪資',   description: '3月份薪資',          amount: 55000,  date: '2026-03-20', account: '台銀帳戶' },
@@ -70,7 +70,7 @@ function todayStr() {
 export default function TransactionsPage() {
   const [txType, setTxType] = useState<TxType>('all');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [toast, setToast] = useState('');
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
   const [undoTx, setUndoTx] = useState<{ tx: Transaction; list: Transaction[] } | null>(null);
@@ -92,7 +92,13 @@ export default function TransactionsPage() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('nschool-transactions');
-      if (saved) setTransactions(JSON.parse(saved));
+      if (saved) {
+        setTransactions(JSON.parse(saved));
+      } else {
+        // First time: load sample data and persist
+        setTransactions(sampleTransactions);
+        localStorage.setItem('nschool-transactions', JSON.stringify(sampleTransactions));
+      }
 
       const accRaw = localStorage.getItem('nschool-accounts');
       if (accRaw) {

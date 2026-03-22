@@ -18,7 +18,7 @@ type Stock = {
   volume: number;
 };
 
-const mockStocks: Record<MarketTab, Stock[]> = {
+const fallbackStocks: Record<MarketTab, Stock[]> = {
   tw: [
     { symbol: '2330', name: '台積電',    price: 1025,   change: 15,    changePercent: 1.48,  volume: 28543 },
     { symbol: '2317', name: '鴻海',      price: 178.5,  change: -2.5,  changePercent: -1.38, volume: 45621 },
@@ -63,13 +63,14 @@ type TradeModalState = { stock: Stock; side: 'buy' | 'sell' } | null;
 
 export default function TradePage() {
   const [activeTab, setActiveTab] = useState<MarketTab>('tw');
-  const [tabKey, setTabKey] = useState(0); // triggers re-mount animation on tab switch
+  const [tabKey, setTabKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set(['2330', 'NVDA']));
   const [tradeModal, setTradeModal] = useState<TradeModalState>(null);
   const [tradeQty, setTradeQty] = useState('1');
   const [tradeError, setTradeError] = useState('');
   const [toast, setToast] = useState('');
+  const [marketStocks, setMarketStocks] = useState(fallbackStocks);
 
   const [balance, setBalance] = useState(220000);
   const [userHoldings, setUserHoldings] = useState<Holding[]>(defaultHoldings);
@@ -86,16 +87,56 @@ export default function TradePage() {
       const savedFavorites = localStorage.getItem('nschool-favorites');
       if (savedFavorites) setFavorites(new Set(JSON.parse(savedFavorites)));
     } catch {}
+
+    // Fetch real market data
+    fetchMarketData();
   }, []);
 
-  const stocks = mockStocks[activeTab].filter(
+  async function fetchMarketData() {
+    try {
+      const res = await fetch('/api/market?market=all');
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.success) return;
+
+      const updated = { ...fallbackStocks };
+
+      // Update TW stocks
+      if (json.data.tw_stocks && json.data.tw_stocks.length > 0) {
+        updated.tw = json.data.tw_stocks.map((s: Stock) => ({
+          ...s,
+          volume: s.volume || 0,
+        }));
+        // Keep any fallback stocks not in API result
+        for (const fb of fallbackStocks.tw) {
+          if (!updated.tw.find((s: Stock) => s.symbol === fb.symbol)) {
+            updated.tw.push(fb);
+          }
+        }
+      }
+
+      // Update crypto
+      if (json.data.crypto && json.data.crypto.length > 0) {
+        updated.crypto = json.data.crypto.map((s: Stock) => ({
+          ...s,
+          volume: s.volume || 0,
+        }));
+      }
+
+      setMarketStocks(updated);
+    } catch {
+      // Keep fallback data
+    }
+  }
+
+  const stocks = marketStocks[activeTab].filter(
     (s) =>
       s.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Market sentiment: count gainers vs losers in current tab
-  const allTabStocks = mockStocks[activeTab];
+  const allTabStocks = marketStocks[activeTab];
   const gainersCount = allTabStocks.filter((s) => s.change >= 0).length;
   const losersCount = allTabStocks.length - gainersCount;
   const gainerPct = allTabStocks.length > 0 ? (gainersCount / allTabStocks.length) * 100 : 50;
