@@ -32,17 +32,40 @@ const OCR_SYSTEM_PROMPT = `你是一個專業的財務資料 OCR 辨識助手。
 
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const file = formData.get('image') as File | null;
-    const sourceType = formData.get('source_type') as string || 'bank';
+    const contentType = request.headers.get('content-type') || '';
+    let base64: string;
+    let mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' = 'image/jpeg';
 
-    if (!file) {
-      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData upload
+      const formData = await request.formData();
+      const file = formData.get('image') as File | null;
+
+      if (!file) {
+        return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+      }
+
+      const bytes = await file.arrayBuffer();
+      base64 = Buffer.from(bytes).toString('base64');
+      mediaType = file.type as typeof mediaType;
+    } else {
+      // Handle JSON with base64 data URL
+      const body = await request.json();
+      const imageData = body.image as string;
+
+      if (!imageData) {
+        return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+      }
+
+      // Parse data URL: data:image/jpeg;base64,/9j/4AAQ...
+      const match = imageData.match(/^data:(image\/(jpeg|png|webp|gif));base64,(.+)$/);
+      if (match) {
+        mediaType = match[1] as typeof mediaType;
+        base64 = match[3];
+      } else {
+        base64 = imageData;
+      }
     }
-
-    const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString('base64');
-    const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
@@ -62,7 +85,7 @@ export async function POST(request: Request) {
             },
             {
               type: 'text',
-              text: `這是一張${sourceType === 'bank' ? '銀行 APP' : sourceType === 'broker' ? '券商 APP' : '記帳 APP'}的截圖，請辨識其中的交易資料。`,
+              text: '請辨識這張截圖中的交易資料。',
             },
           ],
         },
@@ -75,6 +98,22 @@ export async function POST(request: Request) {
     }
 
     const parsed = JSON.parse(textContent.text);
+
+    // Return simplified format for direct form filling
+    if (parsed.transactions && parsed.transactions.length > 0) {
+      const firstTx = parsed.transactions[0];
+      return NextResponse.json({
+        success: true,
+        amount: firstTx.amount,
+        description: firstTx.description,
+        category: firstTx.category_suggestion,
+        date: firstTx.date,
+        transactions: parsed.transactions,
+        account_balance: parsed.account_balance,
+        account_name: parsed.account_name,
+      });
+    }
+
     return NextResponse.json({ success: true, data: parsed });
   } catch (error) {
     console.error('OCR error:', error);

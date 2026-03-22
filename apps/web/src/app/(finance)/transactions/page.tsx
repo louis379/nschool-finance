@@ -82,6 +82,8 @@ export default function TransactionsPage() {
   const [formDesc, setFormDesc] = useState('');
   const [formCategory, setFormCategory] = useState<CategoryKey>('餐飲');
   const [formDate, setFormDate] = useState(todayStr());
+  const [formAccount, setFormAccount] = useState('台銀帳戶');
+  const [accountList, setAccountList] = useState<string[]>(['台銀帳戶']);
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrPreview, setOcrPreview] = useState<string | null>(null);
@@ -91,6 +93,16 @@ export default function TransactionsPage() {
     try {
       const saved = localStorage.getItem('nschool-transactions');
       if (saved) setTransactions(JSON.parse(saved));
+
+      const accRaw = localStorage.getItem('nschool-accounts');
+      if (accRaw) {
+        const accs = JSON.parse(accRaw);
+        const names = accs.map((a: { name: string }) => a.name);
+        if (names.length > 0) {
+          setAccountList(names);
+          setFormAccount(names[0]);
+        }
+      }
     } catch {}
   }, []);
 
@@ -157,7 +169,7 @@ export default function TransactionsPage() {
       description: formDesc.trim() || formCategory,
       amount: formType === 'expense' ? -amount : amount,
       date: formDate,
-      account: '台銀帳戶',
+      account: formAccount,
     };
 
     const updated = [newTx, ...transactions].sort((a, b) => b.date.localeCompare(a.date));
@@ -574,15 +586,30 @@ export default function TransactionsPage() {
               className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all mb-3"
             />
 
-            {/* Date picker */}
-            <div className="mb-5">
-              <input
-                type="date"
-                value={formDate}
-                max={todayStr()}
-                onChange={(e) => setFormDate(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
-              />
+            {/* Date picker + Account selector */}
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-1.5">日期</p>
+                <input
+                  type="date"
+                  value={formDate}
+                  max={todayStr()}
+                  onChange={(e) => setFormDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-1.5">帳戶</p>
+                <select
+                  value={formAccount}
+                  onChange={(e) => setFormAccount(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all appearance-none"
+                >
+                  {accountList.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <button
