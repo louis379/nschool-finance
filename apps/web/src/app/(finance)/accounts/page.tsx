@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import {
   Building2, BarChart2, Bitcoin, Banknote,
-  Plus, Target, Wallet, ChevronRight,
+  Plus, Target, Wallet, X,
   CheckCircle2, Clock, MoreHorizontal, LucideIcon,
 } from 'lucide-react';
 
@@ -19,14 +19,17 @@ const accountTypeConfig: Record<AccountType, {
   cash:   { icon: Banknote,   bg: 'bg-green-100',   text: 'text-green-600',   bar: 'bg-green-400',   label: '現金' },
 };
 
-const mockAccounts = [
-  { id: '1', name: '台銀帳戶', type: 'bank'   as AccountType, balance: 450000, currency: 'TWD' },
-  { id: '2', name: '國泰證券', type: 'broker' as AccountType, balance: 580000, currency: 'TWD' },
-  { id: '3', name: 'Binance',  type: 'crypto' as AccountType, balance: 120000, currency: 'TWD' },
-  { id: '4', name: '現金',     type: 'cash'   as AccountType, balance: 100000, currency: 'TWD' },
+type Account = { id: string; name: string; type: AccountType; balance: number; currency: string };
+type Goal = { id: string; name: string; target: number; current: number; deadline: string; emoji: string };
+
+const DEFAULT_ACCOUNTS: Account[] = [
+  { id: '1', name: '台銀帳戶', type: 'bank',   balance: 450000, currency: 'TWD' },
+  { id: '2', name: '國泰證券', type: 'broker', balance: 580000, currency: 'TWD' },
+  { id: '3', name: 'Binance',  type: 'crypto', balance: 120000, currency: 'TWD' },
+  { id: '4', name: '現金',     type: 'cash',   balance: 100000, currency: 'TWD' },
 ];
 
-const mockGoals = [
+const DEFAULT_GOALS: Goal[] = [
   { id: '1', name: '緊急預備金', target: 360000,  current: 230000, deadline: '2026-12-31', emoji: '🛡️' },
   { id: '2', name: '購屋頭期款', target: 2000000, current: 680000, deadline: '2030-01-01', emoji: '🏠' },
   { id: '3', name: '出國旅遊',   target: 80000,   current: 80000,  deadline: '2026-06-30', emoji: '✈️' },
@@ -34,9 +37,74 @@ const mockGoals = [
 
 type Tab = 'accounts' | 'goals';
 
+const ACCOUNTS_KEY = 'nschool-accounts';
+const GOALS_KEY = 'nschool-goals';
+
+function load<T>(key: string, def: T): T {
+  try {
+    if (typeof window === 'undefined') return def;
+    const s = localStorage.getItem(key);
+    if (s) return JSON.parse(s);
+  } catch {}
+  return def;
+}
+
+const GOAL_EMOJIS = ['🛡️', '🏠', '✈️', '🎓', '🚗', '💻', '🏖️', '💍', '👶', '🎯'];
+
 export default function AccountsPage() {
   const [tab, setTab] = useState<Tab>('accounts');
-  const totalBalance = mockAccounts.reduce((s, a) => s + a.balance, 0);
+  const [accounts, setAccounts] = useState<Account[]>(() => load(ACCOUNTS_KEY, DEFAULT_ACCOUNTS));
+  const [goals, setGoals] = useState<Goal[]>(() => load(GOALS_KEY, DEFAULT_GOALS));
+
+  const [showModal, setShowModal] = useState(false);
+
+  // Add Account form
+  const [accName, setAccName]     = useState('');
+  const [accType, setAccType]     = useState<AccountType>('bank');
+  const [accBalance, setAccBalance] = useState('');
+
+  // Add Goal form
+  const [goalName, setGoalName]       = useState('');
+  const [goalTarget, setGoalTarget]   = useState('');
+  const [goalCurrent, setGoalCurrent] = useState('');
+  const [goalDeadline, setGoalDeadline] = useState('');
+  const [goalEmoji, setGoalEmoji]     = useState('🎯');
+
+  useEffect(() => {
+    try { localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts)); } catch {}
+  }, [accounts]);
+
+  useEffect(() => {
+    try { localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); } catch {}
+  }, [goals]);
+
+  function openModal() {
+    setAccName(''); setAccType('bank'); setAccBalance('');
+    setGoalName(''); setGoalTarget(''); setGoalCurrent(''); setGoalDeadline(''); setGoalEmoji('🎯');
+    setShowModal(true);
+  }
+
+  function saveAccount() {
+    const bal = parseFloat(accBalance) || 0;
+    if (!accName.trim()) return;
+    const newAcc: Account = { id: Date.now().toString(), name: accName.trim(), type: accType, balance: bal, currency: 'TWD' };
+    setAccounts((prev) => [...prev, newAcc]);
+    setShowModal(false);
+  }
+
+  function saveGoal() {
+    const target = parseFloat(goalTarget) || 0;
+    const current = parseFloat(goalCurrent) || 0;
+    if (!goalName.trim() || !target) return;
+    const newGoal: Goal = {
+      id: Date.now().toString(), name: goalName.trim(),
+      target, current, deadline: goalDeadline || '2027-12-31', emoji: goalEmoji,
+    };
+    setGoals((prev) => [...prev, newGoal]);
+    setShowModal(false);
+  }
+
+  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
 
   return (
     <AppLayout>
@@ -51,7 +119,10 @@ export default function AccountsPage() {
               {tab === 'accounts' ? '管理你的所有資產帳戶' : '追蹤你的理財目標進度'}
             </p>
           </div>
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-semibold shadow-md shadow-primary-400/30 hover:shadow-lg transition-all">
+          <button
+            onClick={openModal}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-semibold shadow-md shadow-primary-400/30 hover:shadow-lg transition-all active:scale-95"
+          >
             <Plus className="w-4 h-4" />
             {tab === 'accounts' ? '新增帳戶' : '新增目標'}
           </button>
@@ -67,13 +138,10 @@ export default function AccountsPage() {
               key={key}
               onClick={() => setTab(key)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                tab === key
-                  ? 'bg-primary-500 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                tab === key ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Icon className="w-4 h-4" />
-              {label}
+              <Icon className="w-4 h-4" />{label}
             </button>
           ))}
         </div>
@@ -84,20 +152,14 @@ export default function AccountsPage() {
             <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-[var(--radius-card)] p-5 text-white mb-4 shadow-lg shadow-primary-500/20">
               <p className="text-primary-300 text-xs font-medium mb-1">所有帳戶總計</p>
               <p className="text-3xl font-bold tabular-nums">NT$ {totalBalance.toLocaleString()}</p>
-              <p className="text-primary-300 text-sm mt-1">{mockAccounts.length} 個帳戶</p>
-
-              {/* Mini proportion bar */}
+              <p className="text-primary-300 text-sm mt-1">{accounts.length} 個帳戶</p>
               <div className="flex gap-0.5 h-1 rounded-full overflow-hidden mt-4">
-                {mockAccounts.map((a) => (
-                  <div
-                    key={a.id}
-                    className={accountTypeConfig[a.type].bar}
-                    style={{ width: `${(a.balance / totalBalance) * 100}%` }}
-                  />
+                {accounts.map((a) => (
+                  <div key={a.id} className={accountTypeConfig[a.type].bar} style={{ width: `${(a.balance / totalBalance) * 100}%` }} />
                 ))}
               </div>
-              <div className="flex gap-4 mt-2">
-                {mockAccounts.map((a) => (
+              <div className="flex gap-4 mt-2 flex-wrap">
+                {accounts.map((a) => (
                   <div key={a.id} className="flex items-center gap-1.5">
                     <div className={`w-2 h-2 rounded-full ${accountTypeConfig[a.type].bar}`} />
                     <span className="text-[11px] text-primary-300">{a.name}</span>
@@ -108,16 +170,13 @@ export default function AccountsPage() {
 
             {/* Account List */}
             <div className="space-y-3">
-              {mockAccounts.map((account) => {
+              {accounts.map((account) => {
                 const cfg = accountTypeConfig[account.type];
                 const Icon = cfg.icon;
                 const pct = ((account.balance / totalBalance) * 100).toFixed(1);
 
                 return (
-                  <div
-                    key={account.id}
-                    className="bg-white rounded-[var(--radius-card)] p-5 hover:shadow-md transition-all cursor-pointer group"
-                  >
+                  <div key={account.id} className="bg-white rounded-[var(--radius-card)] p-5 hover:shadow-md transition-all cursor-pointer group">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div className={`w-11 h-11 rounded-2xl ${cfg.bg} flex items-center justify-center shrink-0`}>
@@ -126,18 +185,14 @@ export default function AccountsPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-base font-semibold text-gray-800 truncate">{account.name}</p>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ${cfg.bg} ${cfg.text}`}>
-                              {cfg.label}
-                            </span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>
                           </div>
                           <p className="text-xs text-gray-400 mt-0.5">佔總資產 {pct}%</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-3">
                         <div className="text-right">
-                          <p className="text-base font-bold text-gray-800 tabular-nums">
-                            NT$ {account.balance.toLocaleString()}
-                          </p>
+                          <p className="text-base font-bold text-gray-800 tabular-nums">NT$ {account.balance.toLocaleString()}</p>
                           <p className="text-xs text-gray-400">{account.currency}</p>
                         </div>
                         <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100">
@@ -145,13 +200,8 @@ export default function AccountsPage() {
                         </button>
                       </div>
                     </div>
-
-                    {/* Proportion bar */}
                     <div className="mt-3.5 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${cfg.bar} rounded-full transition-all duration-700`}
-                        style={{ width: `${pct}%` }}
-                      />
+                      <div className={`h-full ${cfg.bar} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );
@@ -160,7 +210,7 @@ export default function AccountsPage() {
           </>
         ) : (
           <div className="space-y-3">
-            {mockGoals.map((goal) => {
+            {goals.map((goal) => {
               const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
               const isComplete = pct >= 100;
               const remaining = goal.target - goal.current;
@@ -168,15 +218,11 @@ export default function AccountsPage() {
               return (
                 <div
                   key={goal.id}
-                  className={`bg-white rounded-[var(--radius-card)] p-5 border-2 transition-all cursor-pointer hover:shadow-md ${
-                    isComplete ? 'border-up/40' : 'border-transparent'
-                  }`}
+                  className={`bg-white rounded-[var(--radius-card)] p-5 border-2 transition-all cursor-pointer hover:shadow-md ${isComplete ? 'border-up/40' : 'border-transparent'}`}
                 >
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-gray-50 flex items-center justify-center text-2xl shrink-0">
-                        {goal.emoji}
-                      </div>
+                      <div className="w-11 h-11 rounded-2xl bg-gray-50 flex items-center justify-center text-2xl shrink-0">{goal.emoji}</div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-base font-semibold text-gray-800 truncate">{goal.name}</p>
@@ -189,22 +235,12 @@ export default function AccountsPage() {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className={`text-2xl font-bold tabular-nums ${isComplete ? 'text-up' : 'text-primary-600'}`}>
-                        {pct}%
-                      </p>
-                      {!isComplete && (
-                        <p className="text-xs text-gray-400 tabular-nums mt-0.5">
-                          還差 NT$ {remaining.toLocaleString()}
-                        </p>
-                      )}
+                      <p className={`text-2xl font-bold tabular-nums ${isComplete ? 'text-up' : 'text-primary-600'}`}>{pct}%</p>
+                      {!isComplete && <p className="text-xs text-gray-400 tabular-nums mt-0.5">還差 NT$ {remaining.toLocaleString()}</p>}
                     </div>
                   </div>
-
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${isComplete ? 'bg-up' : 'bg-primary-500'}`}
-                      style={{ width: `${pct}%` }}
-                    />
+                    <div className={`h-full rounded-full transition-all duration-700 ${isComplete ? 'bg-up' : 'bg-primary-500'}`} style={{ width: `${pct}%` }} />
                   </div>
                   <div className="flex justify-between mt-1.5 text-xs text-gray-400 tabular-nums">
                     <span>NT$ {goal.current.toLocaleString()}</span>
@@ -216,6 +252,143 @@ export default function AccountsPage() {
           </div>
         )}
       </div>
+
+      {/* Add Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-sm p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5 md:hidden" />
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-gray-800">
+                {tab === 'accounts' ? '新增帳戶' : '新增目標'}
+              </h3>
+              <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {tab === 'accounts' ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 font-medium block mb-1.5">帳戶名稱</label>
+                  <input
+                    value={accName}
+                    onChange={(e) => setAccName(e.target.value)}
+                    placeholder="例如：國泰世華"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 font-medium block mb-1.5">帳戶類型</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.entries(accountTypeConfig) as [AccountType, typeof accountTypeConfig.bank][]).map(([key, cfg]) => {
+                      const Icon = cfg.icon;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setAccType(key)}
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                            accType === key ? 'border-primary-400 bg-primary-50 text-primary-700' : 'border-gray-100 hover:border-gray-200 text-gray-600'
+                          }`}
+                        >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${cfg.bg}`}>
+                            <Icon className={`w-3.5 h-3.5 ${cfg.text}`} />
+                          </div>
+                          {cfg.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 font-medium block mb-1.5">目前餘額（NT$）</label>
+                  <input
+                    type="number"
+                    value={accBalance}
+                    onChange={(e) => setAccBalance(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                  />
+                </div>
+                <button
+                  onClick={saveAccount}
+                  disabled={!accName.trim()}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-bold text-sm shadow-md active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  新增帳戶
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 font-medium block mb-1.5">目標名稱</label>
+                  <input
+                    value={goalName}
+                    onChange={(e) => setGoalName(e.target.value)}
+                    placeholder="例如：購屋頭期款"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 font-medium block mb-1.5">選擇圖示</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {GOAL_EMOJIS.map((e) => (
+                      <button
+                        key={e}
+                        onClick={() => setGoalEmoji(e)}
+                        className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 transition-all ${
+                          goalEmoji === e ? 'border-primary-400 bg-primary-50' : 'border-gray-100 hover:border-gray-200'
+                        }`}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 font-medium block mb-1.5">目標金額（NT$）</label>
+                    <input
+                      type="number"
+                      value={goalTarget}
+                      onChange={(e) => setGoalTarget(e.target.value)}
+                      placeholder="500000"
+                      className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 font-medium block mb-1.5">目前進度（NT$）</label>
+                    <input
+                      type="number"
+                      value={goalCurrent}
+                      onChange={(e) => setGoalCurrent(e.target.value)}
+                      placeholder="0"
+                      className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 font-medium block mb-1.5">目標期限</label>
+                  <input
+                    type="date"
+                    value={goalDeadline}
+                    onChange={(e) => setGoalDeadline(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                  />
+                </div>
+                <button
+                  onClick={saveGoal}
+                  disabled={!goalName.trim() || !goalTarget}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-bold text-sm shadow-md active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  新增目標
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
