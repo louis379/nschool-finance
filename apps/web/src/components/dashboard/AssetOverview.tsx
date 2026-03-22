@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Wallet, Eye, EyeOff, Building2, BarChart2, Bitcoin, Banknote } from 'lucide-react';
+import Link from 'next/link';
+import { TrendingUp, TrendingDown, Wallet, Eye, EyeOff, Building2, BarChart2, Bitcoin, Banknote, Plus } from 'lucide-react';
 
 type AccountType = 'bank' | 'broker' | 'crypto' | 'cash';
 type Account = { id: string; name: string; type: AccountType; balance: number; currency: string };
@@ -20,42 +21,61 @@ const accountColors: Record<AccountType, string> = {
   cash: '#00B894',
 };
 
-const DEFAULT_ACCOUNTS: Account[] = [
-  { id: '1', name: '台銀帳戶', type: 'bank',   balance: 450000, currency: 'TWD' },
-  { id: '2', name: '國泰證券', type: 'broker', balance: 580000, currency: 'TWD' },
-  { id: '3', name: 'Binance',  type: 'crypto', balance: 120000, currency: 'TWD' },
-  { id: '4', name: '現金',     type: 'cash',   balance: 100000, currency: 'TWD' },
-];
-
 export default function AssetOverview() {
   const [showBalance, setShowBalance] = useState(true);
-  const [accounts, setAccounts] = useState<Account[]>(DEFAULT_ACCOUNTS);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [monthlyChange, setMonthlyChange] = useState({ amount: 0, percent: 0 });
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem('nschool-accounts');
-      if (raw) setAccounts(JSON.parse(raw));
+      if (raw) {
+        const parsed: Account[] = JSON.parse(raw);
+        setAccounts(parsed);
 
-      // Compute monthly income/expense from transactions
-      const txRaw = localStorage.getItem('nschool-transactions');
-      if (txRaw) {
-        const txs = JSON.parse(txRaw);
-        const now = new Date();
-        const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        const monthlyTxs = txs.filter((t: { date: string }) => t.date.startsWith(thisMonth));
-        const change = monthlyTxs.reduce((s: number, t: { amount: number }) => s + t.amount, 0);
-        const total = (raw ? JSON.parse(raw) : DEFAULT_ACCOUNTS).reduce((s: number, a: Account) => s + a.balance, 0);
-        setMonthlyChange({
-          amount: change,
-          percent: total > 0 ? (change / total) * 100 : 0,
-        });
+        // Compute monthly income/expense from transactions
+        const txRaw = localStorage.getItem('nschool-transactions');
+        if (txRaw) {
+          const txs = JSON.parse(txRaw);
+          const now = new Date();
+          const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          const monthlyTxs = txs.filter((t: { date: string }) => t.date.startsWith(thisMonth));
+          const change = monthlyTxs.reduce((s: number, t: { amount: number }) => s + t.amount, 0);
+          const total = parsed.reduce((s: number, a: Account) => s + a.balance, 0);
+          setMonthlyChange({
+            amount: change,
+            percent: total > 0 ? (change / total) * 100 : 0,
+          });
+        }
       }
     } catch {}
   }, []);
 
   const totalAssets = accounts.reduce((s, a) => s + a.balance, 0);
   const isPositive = monthlyChange.amount >= 0;
+
+  // Empty state
+  if (accounts.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 rounded-[var(--radius-card)] p-6 text-white shadow-lg shadow-primary-500/20">
+        <div className="flex items-center gap-2 mb-5">
+          <Wallet className="w-4 h-4 text-primary-200" />
+          <span className="text-primary-200 text-sm font-medium">總資產</span>
+        </div>
+        <div className="py-6 text-center">
+          <p className="text-4xl mb-3">🏦</p>
+          <h3 className="text-lg font-bold text-white mb-1">設定你的第一個帳戶</h3>
+          <p className="text-primary-200 text-sm mb-5">新增帳戶後，即可追蹤你的總資產狀況</p>
+          <Link
+            href="/accounts"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-semibold text-white transition-colors"
+          >
+            <Plus className="w-4 h-4" /> 新增帳戶
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 rounded-[var(--radius-card)] p-6 text-white shadow-lg shadow-primary-500/20">

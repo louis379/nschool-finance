@@ -53,11 +53,7 @@ type Holding = {
   pnlPercent: number;
 };
 
-const defaultHoldings: Holding[] = [
-  { symbol: '2330', name: '台積電', qty: 200, avgCost: 980,   currentPrice: 1025,  pnlPercent: 4.59 },
-  { symbol: '0050', name: '元大台灣50', qty: 1000, avgCost: 178, currentPrice: 185.3, pnlPercent: 4.10 },
-  { symbol: 'NVDA', name: 'NVIDIA',   qty: 10,  avgCost: 780,   currentPrice: 875.28, pnlPercent: 12.22 },
-];
+const defaultHoldings: Holding[] = [];
 
 type TradeModalState = { stock: Stock; side: 'buy' | 'sell' } | null;
 
@@ -72,7 +68,7 @@ export default function TradePage() {
   const [toast, setToast] = useState('');
   const [marketStocks, setMarketStocks] = useState(fallbackStocks);
 
-  const [balance, setBalance] = useState(220000);
+  const [balance, setBalance] = useState(100000);
   const [userHoldings, setUserHoldings] = useState<Holding[]>(defaultHoldings);
 
   // Load from localStorage after mount
@@ -303,7 +299,11 @@ export default function TradePage() {
         <div className="bg-white rounded-[var(--radius-card)] p-5 mb-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">我的持倉</h2>
           {userHoldings.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">尚無持倉，開始交易吧！</p>
+            <div className="text-center py-6">
+              <p className="text-2xl mb-2">🎮</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">用模擬資金買你的第一張股票</p>
+              <p className="text-xs text-gray-400">你有 NT$ {balance.toLocaleString()} 的模擬資金，零風險練習投資</p>
+            </div>
           ) : (
             <div className="space-y-2">
               {userHoldings.map((h) => {

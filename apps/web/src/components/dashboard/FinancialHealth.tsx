@@ -107,20 +107,15 @@ function computeMetrics(): { score: number; metrics: Metric[]; advice: string } 
     return { score, metrics, advice };
   } catch {
     return {
-      score: 72,
-      metrics: [
-        { label: '儲蓄率', value: '32%', status: 'good', description: '高於建議的 20%' },
-        { label: '收支比', value: '0.68', status: 'good', description: '支出佔收入 68%' },
-        { label: '緊急預備金', value: '3.2 個月', status: 'warning', description: '建議至少 6 個月' },
-        { label: '投資比例', value: '46%', status: 'good', description: '配置比例適當' },
-      ],
-      advice: '建議增加緊急預備金至 6 個月。',
+      score: 50,
+      metrics: [],
+      advice: '開始記帳並新增帳戶，即可看到你的財務健康分數',
     };
   }
 }
 
 export default function FinancialHealth() {
-  const [data, setData] = useState({ score: 72, metrics: [] as Metric[], advice: '' });
+  const [data, setData] = useState({ score: 50, metrics: [] as Metric[], advice: '' });
 
   useEffect(() => {
     setData(computeMetrics());
@@ -176,22 +171,29 @@ export default function FinancialHealth() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-2">
-        {data.metrics.map((metric) => {
-          const cfg = statusConfig[metric.status];
-          const Icon = cfg.icon;
-          return (
-            <div key={metric.label} className="p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] text-gray-500 font-medium">{metric.label}</span>
-                <Icon className={`w-3.5 h-3.5 ${cfg.icon_color}`} />
+      {data.metrics.length > 0 ? (
+        <div className="grid grid-cols-2 gap-2">
+          {data.metrics.map((metric) => {
+            const cfg = statusConfig[metric.status];
+            const Icon = cfg.icon;
+            return (
+              <div key={metric.label} className="p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] text-gray-500 font-medium">{metric.label}</span>
+                  <Icon className={`w-3.5 h-3.5 ${cfg.icon_color}`} />
+                </div>
+                <p className="text-lg font-bold text-gray-800 leading-none">{metric.value}</p>
+                <p className="text-[10px] text-gray-400 mt-1.5">{metric.description}</p>
               </div>
-              <p className="text-lg font-bold text-gray-800 leading-none">{metric.value}</p>
-              <p className="text-[10px] text-gray-400 mt-1.5">{metric.description}</p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="py-4 text-center bg-gray-50 rounded-xl">
+          <p className="text-xs text-gray-400">新增帳戶並開始記帳後</p>
+          <p className="text-xs text-gray-400">即可查看詳細財務指標</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -34,16 +34,6 @@ type Transaction = {
   amount: number; date: string; account: string;
 };
 
-const sampleTransactions: Transaction[] = [
-  { id: '1', category: '餐飲',   description: '午餐 - 便當',       amount: -120,   date: '2026-03-21', account: '台銀帳戶' },
-  { id: '2', category: '交通',   description: 'YouBike 租借',       amount: -30,    date: '2026-03-21', account: '台銀帳戶' },
-  { id: '3', category: '薪資',   description: '3月份薪資',          amount: 55000,  date: '2026-03-20', account: '台銀帳戶' },
-  { id: '4', category: '購物',   description: 'momo 購物 - 耳機',   amount: -1290,  date: '2026-03-20', account: '台銀帳戶' },
-  { id: '5', category: '投資收入', description: '股利入帳 - 0050',  amount: 3500,   date: '2026-03-18', account: '國泰證券' },
-  { id: '6', category: '居住',   description: '房租',               amount: -12000, date: '2026-03-15', account: '台銀帳戶' },
-  { id: '7', category: '通訊',   description: '中華電信月租',       amount: -599,   date: '2026-03-15', account: '台銀帳戶' },
-  { id: '8', category: '娛樂',   description: 'Netflix 訂閱',       amount: -390,   date: '2026-03-14', account: '台銀帳戶' },
-];
 
 function groupByDate(txs: Transaction[]) {
   const groups: Record<string, Transaction[]> = {};
@@ -94,10 +84,6 @@ export default function TransactionsPage() {
       const saved = localStorage.getItem('nschool-transactions');
       if (saved) {
         setTransactions(JSON.parse(saved));
-      } else {
-        // First time: load sample data and persist
-        setTransactions(sampleTransactions);
-        localStorage.setItem('nschool-transactions', JSON.stringify(sampleTransactions));
       }
 
       const accRaw = localStorage.getItem('nschool-accounts');
@@ -359,7 +345,20 @@ export default function TransactionsPage() {
           {grouped.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-3xl mb-2">📋</p>
-              <p className="text-gray-400 text-sm">沒有符合條件的記錄</p>
+              {transactions.length === 0 ? (
+                <>
+                  <p className="text-gray-600 text-sm font-medium mb-1">記錄你的第一筆收支</p>
+                  <p className="text-gray-400 text-xs mb-4">養成記帳習慣，清楚掌握每月收支流向</p>
+                  <button
+                    onClick={openModal}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white text-xs font-semibold rounded-xl hover:bg-primary-600 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> 快速新增
+                  </button>
+                </>
+              ) : (
+                <p className="text-gray-400 text-sm">沒有符合條件的記錄</p>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

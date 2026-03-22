@@ -23,18 +23,9 @@ const accountTypeConfig: Record<AccountType, {
 type Account = { id: string; name: string; type: AccountType; balance: number; currency: string };
 type Goal = { id: string; name: string; target: number; current: number; deadline: string; emoji: string };
 
-const DEFAULT_ACCOUNTS: Account[] = [
-  { id: '1', name: '台銀帳戶', type: 'bank',   balance: 450000, currency: 'TWD' },
-  { id: '2', name: '國泰證券', type: 'broker', balance: 580000, currency: 'TWD' },
-  { id: '3', name: 'Binance',  type: 'crypto', balance: 120000, currency: 'TWD' },
-  { id: '4', name: '現金',     type: 'cash',   balance: 100000, currency: 'TWD' },
-];
+const DEFAULT_ACCOUNTS: Account[] = [];
 
-const DEFAULT_GOALS: Goal[] = [
-  { id: '1', name: '緊急預備金', target: 360000,  current: 230000, deadline: '2026-12-31', emoji: '🛡️' },
-  { id: '2', name: '購屋頭期款', target: 2000000, current: 680000, deadline: '2030-01-01', emoji: '🏠' },
-  { id: '3', name: '出國旅遊',   target: 80000,   current: 80000,  deadline: '2026-06-30', emoji: '✈️' },
-];
+const DEFAULT_GOALS: Goal[] = [];
 
 type Tab = 'accounts' | 'goals';
 
@@ -262,6 +253,19 @@ export default function AccountsPage() {
             </div>
 
             {/* Account List */}
+            {accounts.length === 0 && (
+              <div className="bg-white rounded-[var(--radius-card)] p-8 text-center mb-3">
+                <p className="text-3xl mb-3">🏦</p>
+                <p className="text-gray-700 font-medium mb-1">新增你的第一個帳戶</p>
+                <p className="text-sm text-gray-400 mb-4">將銀行、證券、加密貨幣帳戶統一管理</p>
+                <button
+                  onClick={openModal}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> 新增帳戶
+                </button>
+              </div>
+            )}
             <div className="space-y-3">
               {accounts.map((account) => {
                 const cfg = accountTypeConfig[account.type];
@@ -323,6 +327,20 @@ export default function AccountsPage() {
             </div>
           </>
         ) : (
+          <>
+          {goals.length === 0 && (
+            <div className="bg-white rounded-[var(--radius-card)] p-8 text-center mb-3">
+              <p className="text-3xl mb-3">🎯</p>
+              <p className="text-gray-700 font-medium mb-1">設定你的第一個財務目標</p>
+              <p className="text-sm text-gray-400 mb-4">無論是存緊急預備金、買房或退休，讓目標幫你保持動力</p>
+              <button
+                onClick={openModal}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> 新增目標
+              </button>
+            </div>
+          )}
           <div className="space-y-3">
             {goals.map((goal) => {
               const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
@@ -390,6 +408,7 @@ export default function AccountsPage() {
               );
             })}
           </div>
+          </>
         )}
       </div>
 

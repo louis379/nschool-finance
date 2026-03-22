@@ -27,13 +27,6 @@ type Transaction = {
   amount: number; date: string; account: string;
 };
 
-const defaultTransactions: Transaction[] = [
-  { id: '1', category: '餐飲',   description: '午餐 - 便當',       amount: -120,   date: '2026-03-21', account: '台銀帳戶' },
-  { id: '2', category: '交通',   description: 'YouBike 租借',       amount: -30,    date: '2026-03-21', account: '台銀帳戶' },
-  { id: '3', category: '薪資',   description: '3月份薪資',          amount: 55000,  date: '2026-03-20', account: '台銀帳戶' },
-  { id: '4', category: '購物',   description: 'momo 購物 - 耳機',   amount: -1290,  date: '2026-03-20', account: '台銀帳戶' },
-  { id: '5', category: '投資收入', description: '股利入帳 - 0050',  amount: 3500,   date: '2026-03-18', account: '國泰證券' },
-];
 
 function formatDateLabel(dateStr: string) {
   const today = new Date();
@@ -45,7 +38,7 @@ function formatDateLabel(dateStr: string) {
 }
 
 export default function RecentTransactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
     try {
@@ -72,9 +65,13 @@ export default function RecentTransactions() {
       {transactions.length === 0 ? (
         <div className="py-8 text-center">
           <p className="text-2xl mb-2">📋</p>
-          <p className="text-gray-400 text-sm">尚無交易記錄</p>
-          <Link href="/transactions" className="text-primary-500 text-sm font-medium mt-2 inline-block hover:underline">
-            前往記帳
+          <p className="text-gray-600 text-sm font-medium mb-1">記錄你的第一筆支出</p>
+          <p className="text-gray-400 text-xs mb-3">養成記帳習慣，掌握每月收支</p>
+          <Link
+            href="/transactions"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white text-xs font-semibold rounded-xl hover:bg-primary-600 transition-colors"
+          >
+            開始記帳
           </Link>
         </div>
       ) : (

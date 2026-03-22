@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import AssetOverview from '@/components/dashboard/AssetOverview';
 import QuickActions from '@/components/dashboard/QuickActions';
@@ -35,6 +36,7 @@ type AiResult = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const greeting = getGreeting();
   const today = getFormattedDate();
   const [displayName, setDisplayName] = useState('投資新手');
@@ -42,8 +44,16 @@ export default function DashboardPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<AiResult | null>(null);
   const [aiError, setAiError] = useState('');
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // Redirect to onboarding if not completed
+    const onboarded = localStorage.getItem('nschool-onboarded');
+    if (!onboarded) {
+      router.replace('/onboarding');
+      return;
+    }
+
     try {
       const raw = localStorage.getItem('nschool-profile');
       if (raw) {
@@ -51,7 +61,10 @@ export default function DashboardPage() {
         if (profile.displayName) setDisplayName(profile.displayName);
       }
     } catch {}
-  }, []);
+    setReady(true);
+  }, [router]);
+
+  if (!ready) return null;
 
   async function runAiAnalysis() {
     setShowAiModal(true);
