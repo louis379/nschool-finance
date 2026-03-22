@@ -126,6 +126,50 @@ input[type="range"]::-webkit-slider-thumb:hover {
   animation: fadeInUp 0.25s ease-out both;
 }
 
+/* Modal slide-down (mobile top sheet) */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modal scale-in (desktop centered) */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Modal backdrop fade */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-backdrop {
+  animation: fadeIn 0.2s ease-out both;
+}
+
+.modal-content {
+  animation: slideDown 0.25s ease-out both;
+}
+
+@media (min-width: 768px) {
+  .modal-content {
+    animation: scaleIn 0.2s ease-out both;
+  }
+}
+
 /* Card hover lift */
 .card-hover {
   transition: box-shadow 0.2s ease, transform 0.2s ease;

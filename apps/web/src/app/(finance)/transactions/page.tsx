@@ -448,10 +448,9 @@ export default function TransactionsPage() {
 
       {/* OCR Modal */}
       {showOcrModal && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { if (!ocrLoading) setShowOcrModal(false); }} />
-          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5 md:hidden" />
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop" onClick={() => { if (!ocrLoading) setShowOcrModal(false); }} />
+          <div className="relative bg-white rounded-b-3xl md:rounded-2xl w-full max-w-sm p-6 pt-[max(1.5rem,env(safe-area-inset-top))] shadow-2xl modal-content">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-gray-800">OCR 掃描收據</h3>
               <button onClick={() => setShowOcrModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
@@ -513,10 +512,9 @@ export default function TransactionsPage() {
 
       {/* Add Transaction Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
-          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5 md:hidden" />
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop" onClick={() => setShowAddModal(false)} />
+          <div className="relative bg-white rounded-b-3xl md:rounded-2xl w-full max-w-sm p-6 pt-[max(1.5rem,env(safe-area-inset-top))] shadow-2xl modal-content">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-gray-800">新增記錄</h3>
               <button onClick={() => setShowAddModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
