@@ -42,7 +42,8 @@ function Toggle({ on, onChange }: ToggleProps) {
   return (
     <button
       onClick={onChange}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none ${on ? 'bg-primary-500' : 'bg-gray-200'}`}
+      style={{ minHeight: 0, minWidth: 0 }}
+      className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none overflow-hidden shrink-0 ${on ? 'bg-primary-500' : 'bg-gray-200'}`}
     >
       <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${on ? 'translate-x-5' : 'translate-x-0'}`} />
     </button>
