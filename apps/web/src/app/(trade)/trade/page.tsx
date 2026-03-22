@@ -63,6 +63,7 @@ type TradeModalState = { stock: Stock; side: 'buy' | 'sell' } | null;
 
 export default function TradePage() {
   const [activeTab, setActiveTab] = useState<MarketTab>('tw');
+  const [tabKey, setTabKey] = useState(0); // triggers re-mount animation on tab switch
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set(['2330', 'NVDA']));
   const [tradeModal, setTradeModal] = useState<TradeModalState>(null);
@@ -93,9 +94,21 @@ export default function TradePage() {
       s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Market sentiment: count gainers vs losers in current tab
+  const allTabStocks = mockStocks[activeTab];
+  const gainersCount = allTabStocks.filter((s) => s.change >= 0).length;
+  const losersCount = allTabStocks.length - gainersCount;
+  const gainerPct = allTabStocks.length > 0 ? (gainersCount / allTabStocks.length) * 100 : 50;
+
   const totalAssets = balance + userHoldings.reduce((sum, h) => sum + h.currentPrice * h.qty, 0);
   const totalInvested = userHoldings.reduce((sum, h) => sum + h.avgCost * h.qty, 0);
   const unrealizedPnL = userHoldings.reduce((sum, h) => sum + (h.currentPrice - h.avgCost) * h.qty, 0);
+
+  function switchTab(tab: MarketTab) {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setTabKey((k) => k + 1); // trigger fade-in animation
+  }
 
   function toggleFavorite(symbol: string) {
     setFavorites((prev) => {
@@ -181,6 +194,19 @@ export default function TradePage() {
   const totalCost = tradeModal
     ? (parseInt(tradeQty) || 0) * tradeModal.stock.price
     : 0;
+
+  // Quick qty presets for trade modal
+  const maxBuyQty = tradeModal ? Math.floor(balance / (tradeModal.stock.price * 1.001425)) : 0;
+  const maxSellQty = tradeModal
+    ? (userHoldings.find((h) => h.symbol === tradeModal.stock.symbol)?.qty ?? 0)
+    : 0;
+
+  const buyPresets = [1, 5, 10, 'max'] as const;
+  const sellPresets = [
+    { label: '¼', value: Math.max(1, Math.floor(maxSellQty * 0.25)) },
+    { label: '½', value: Math.max(1, Math.floor(maxSellQty * 0.5)) },
+    { label: '全部', value: maxSellQty },
+  ];
 
   const portfolioStats = [
     { label: '總資產',    value: `NT$ ${Math.round(totalAssets).toLocaleString()}`,     sub: '+3.52%',  isUp: true,  icon: Wallet },
@@ -270,12 +296,12 @@ export default function TradePage() {
 
         {/* Market Tabs & Search */}
         <div className="bg-white rounded-[var(--radius-card)] p-5">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
             <div className="flex gap-1 bg-gray-50 p-1 rounded-xl">
               {(Object.keys(tabLabels) as MarketTab[]).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => switchTab(tab)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     activeTab === tab
                       ? 'bg-primary-500 text-white shadow-sm'
@@ -298,8 +324,26 @@ export default function TradePage() {
             </div>
           </div>
 
+          {/* Market Sentiment Bar — moomoo-style */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-2 text-xs shrink-0">
+              <span className="text-up font-semibold">↑ {gainersCount} 上漲</span>
+              <span className="text-gray-300">·</span>
+              <span className="text-down font-semibold">↓ {losersCount} 下跌</span>
+            </div>
+            <div className="flex-1 h-1.5 bg-down/20 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-up/70 rounded-full transition-all duration-500"
+                style={{ width: `${gainerPct}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-400 shrink-0">{gainersCount}/{allTabStocks.length}</span>
+          </div>
+
+          {/* Stock list — key prop triggers fade-in animation on tab switch (Webull-style) */}
+
           {/* Mobile Card List */}
-          <div className="md:hidden space-y-2">
+          <div key={`mobile-${tabKey}`} className="md:hidden space-y-2 animate-fade-in">
             {stocks.map((stock) => {
               const isUp = stock.change >= 0;
               const isFav = favorites.has(stock.symbol);
@@ -336,7 +380,7 @@ export default function TradePage() {
           </div>
 
           {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
+          <div key={`desktop-${tabKey}`} className="hidden md:block overflow-x-auto animate-fade-in">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100">
@@ -425,7 +469,7 @@ export default function TradePage() {
       {tradeModal && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setTradeModal(null)} />
-          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-fade-in">
             {/* Handle */}
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5 md:hidden" />
 
@@ -456,7 +500,55 @@ export default function TradePage() {
               </span>
             </div>
 
-            {/* Quantity */}
+            {/* Quick Qty Presets — Robinhood-style one-tap quantity selection */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-400 mb-2">快速選擇數量</p>
+              {tradeModal.side === 'buy' ? (
+                <div className="flex gap-2">
+                  {buyPresets.map((p) => {
+                    const val = p === 'max' ? maxBuyQty : p;
+                    const label = p === 'max' ? `最多 ${val}` : `×${p}`;
+                    const isActive = parseInt(tradeQty) === val;
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => { setTradeQty(String(val)); setTradeError(''); }}
+                        disabled={val <= 0}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
+                          isActive
+                            ? 'bg-up text-white shadow-sm'
+                            : 'bg-up/10 text-up hover:bg-up/20'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {sellPresets.map((p) => {
+                    const isActive = parseInt(tradeQty) === p.value;
+                    return (
+                      <button
+                        key={p.label}
+                        onClick={() => { setTradeQty(String(p.value)); setTradeError(''); }}
+                        disabled={p.value <= 0}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
+                          isActive
+                            ? 'bg-down text-white shadow-sm'
+                            : 'bg-down/10 text-down hover:bg-down/20'
+                        }`}
+                      >
+                        {p.label} ({p.value})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Quantity Stepper */}
             <div className="mb-4">
               <label className="text-sm font-medium text-gray-600 block mb-2">
                 {tradeModal.side === 'buy' ? '買入' : '賣出'}數量（股/張）
