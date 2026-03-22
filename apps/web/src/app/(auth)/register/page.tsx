@@ -59,8 +59,9 @@ export default function RegisterPage() {
       } catch {}
 
       setSuccess(true);
-    } catch {
-      setError('註冊失敗，請稍後再試');
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError(err instanceof Error ? err.message : '註冊失敗，請稍後再試');
     } finally {
       setLoading(false);
     }

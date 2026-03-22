@@ -27,7 +27,8 @@ export default function LoginPage() {
       });
       if (error) throw error;
     } catch (err) {
-      setError('Google 登入失敗，請稍後再試');
+      console.error('Google login error:', err);
+      setError(err instanceof Error ? err.message : 'Google 登入失敗，請稍後再試');
       setLoading(false);
     }
   };
