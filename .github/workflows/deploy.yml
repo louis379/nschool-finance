@@ -39,17 +39,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trigger Zeabur redeploy
+      - name: Trigger Zeabur restart
         run: |
-          curl -s -X POST https://gateway.zeabur.com/graphql \
+          curl -s -X POST https://api.zeabur.com/graphql \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.ZEABUR_TOKEN }}" \
             -d '{
-              "query": "mutation { redeployService(serviceID: \"69beaf82ceee47754dac1144\", environmentID: \"69bda69476bc68ba374c9f3e\") }"
+              "query": "mutation { restartService(serviceID: \"69beaf82ceee47754dac1144\", environmentID: \"69bda69476bc68ba374c9f3e\") }"
             }' | tee /tmp/zeabur-response.json
           cat /tmp/zeabur-response.json
           if grep -q '"errors"' /tmp/zeabur-response.json; then
-            echo "Zeabur redeploy failed"
+            echo "Zeabur restart failed"
             exit 1
           fi
-          echo "Zeabur redeploy triggered successfully"
+          echo "Zeabur restart triggered successfully"
