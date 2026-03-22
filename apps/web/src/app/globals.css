@@ -80,13 +80,8 @@ a,
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Minimum touch target size */
-button,
-[role="button"],
-a {
-  min-height: 36px;
-  min-width: 36px;
-}
+/* Minimum touch target: only applies when no explicit height/width Tailwind class is set.
+   Components with explicit h-* or w-* classes manage their own sizing. */
 
 /* Range input styling */
 input[type="range"] {
@@ -124,6 +119,16 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .page-enter {
   animation: fadeInUp 0.25s ease-out both;
+}
+
+/* Fade-in animation (used by trade page tab switches) */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out both;
 }
 
 /* Card hover lift */

@@ -105,7 +105,7 @@ export default function AdminNotificationsPage() {
             </div>
             <h1 className="text-xl font-bold text-gray-800">LINE 推播管理</h1>
           </div>
-          <p className="text-sm text-gray-400 ml-13">後台通知管理介面</p>
+          <p className="text-sm text-gray-400 ml-[52px]">後台通知管理介面</p>
         </div>
 
         {/* Tabs */}
