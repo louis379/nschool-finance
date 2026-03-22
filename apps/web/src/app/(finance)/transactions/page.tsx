@@ -7,6 +7,7 @@ import {
   ArrowDownLeft, ArrowUpRight, Wallet,
   Utensils, Car, Banknote, ShoppingBag, TrendingUp,
   Home, Smartphone, Tv, X, LucideIcon, CheckCircle, Trash2,
+  Upload, ImageIcon, Loader2,
 } from 'lucide-react';
 
 type TxType = 'all' | 'income' | 'expense';
@@ -81,6 +82,10 @@ export default function TransactionsPage() {
   const [formDesc, setFormDesc] = useState('');
   const [formCategory, setFormCategory] = useState<CategoryKey>('餐飲');
   const [formDate, setFormDate] = useState(todayStr());
+  const [showOcrModal, setShowOcrModal] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrPreview, setOcrPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -196,6 +201,50 @@ export default function TransactionsPage() {
     setToast('');
   }
 
+  function handleOcrFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target?.result as string;
+      setOcrPreview(base64);
+      setOcrLoading(true);
+
+      try {
+        const res = await fetch('/api/ocr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64 }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          // Auto-fill form with OCR results
+          if (data.amount) setFormAmount(Math.abs(data.amount).toString());
+          if (data.description) setFormDesc(data.description);
+          if (data.category && categoryConfig[data.category as CategoryKey]) {
+            setFormCategory(data.category as CategoryKey);
+          }
+          setFormType(data.amount < 0 ? 'expense' : 'income');
+          setShowOcrModal(false);
+          setShowAddModal(true);
+          showToast('OCR 辨識完成，請確認資料');
+        } else {
+          showToast('OCR 辨識失敗，請手動輸入');
+          setShowOcrModal(false);
+        }
+      } catch {
+        showToast('OCR 辨識失敗，請手動輸入');
+        setShowOcrModal(false);
+      } finally {
+        setOcrLoading(false);
+        setOcrPreview(null);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <AppLayout>
       <div className="max-w-3xl mx-auto">
@@ -206,7 +255,10 @@ export default function TransactionsPage() {
             <p className="text-sm text-gray-400 mt-0.5">記錄每一筆收支，掌握財務狀況</p>
           </div>
           <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 text-white text-sm font-medium shadow-md shadow-sky-400/30 hover:bg-sky-600 transition-colors">
+            <button
+              onClick={() => setShowOcrModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 text-white text-sm font-medium shadow-md shadow-sky-400/30 hover:bg-sky-600 transition-colors"
+            >
               <Camera className="w-4 h-4" /> OCR 掃描
             </button>
             <button
@@ -373,6 +425,71 @@ export default function TransactionsPage() {
               復原
             </button>
           )}
+        </div>
+      )}
+
+      {/* OCR Modal */}
+      {showOcrModal && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { if (!ocrLoading) setShowOcrModal(false); }} />
+          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5 md:hidden" />
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-gray-800">OCR 掃描收據</h3>
+              <button onClick={() => setShowOcrModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {ocrLoading ? (
+              <div className="py-12 flex flex-col items-center gap-3">
+                <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+                <p className="text-sm text-gray-500">AI 正在辨識收據...</p>
+                {ocrPreview && (
+                  <img src={ocrPreview} alt="preview" className="w-32 h-32 object-cover rounded-xl mt-2 opacity-50" />
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500 text-center">拍照或上傳收據，AI 自動辨識金額與分類</p>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleOcrFile}
+                  className="hidden"
+                />
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-3 py-8 rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/50 hover:bg-sky-50 transition-colors cursor-pointer"
+                >
+                  <div className="text-center">
+                    <Camera className="w-8 h-8 text-sky-500 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-sky-600">拍照掃描</p>
+                    <p className="text-xs text-gray-400 mt-1">開啟相機拍攝收據</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (e) => handleOcrFile(e as unknown as React.ChangeEvent<HTMLInputElement>);
+                    input.click();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-600 font-medium"
+                >
+                  <Upload className="w-4 h-4" /> 從相簿選擇
+                </button>
+
+                <p className="text-xs text-gray-400 text-center">支援 JPG、PNG 格式</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

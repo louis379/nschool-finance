@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import AssetOverview from '@/components/dashboard/AssetOverview';
 import QuickActions from '@/components/dashboard/QuickActions';
@@ -28,6 +29,17 @@ function getFormattedDate() {
 export default function DashboardPage() {
   const greeting = getGreeting();
   const today = getFormattedDate();
+  const [displayName, setDisplayName] = useState('投資新手');
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('nschool-profile');
+      if (raw) {
+        const profile = JSON.parse(raw);
+        if (profile.displayName) setDisplayName(profile.displayName);
+      }
+    } catch {}
+  }, []);
 
   return (
     <AppLayout>
@@ -36,7 +48,7 @@ export default function DashboardPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              {greeting.text}，小明！
+              {greeting.text}，{displayName}！
             </h1>
             <p className="text-sm text-gray-400 mt-1">{greeting.sub}</p>
             <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-400">

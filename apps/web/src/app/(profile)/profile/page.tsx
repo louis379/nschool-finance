@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import {
   User, Settings, Shield, Bell, HelpCircle, LogOut,
@@ -8,16 +8,34 @@ import {
   Edit2, ChevronDown, ChevronRight,
 } from 'lucide-react';
 
-const stats = [
-  { label: '記帳天數', value: 32, icon: Receipt,  color: 'text-primary-500', bgColor: 'bg-primary-50' },
-  { label: '模擬交易', value: 15, icon: BarChart3, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-  { label: '完成課程', value: 8,  icon: BookOpen,  color: 'text-blue-500',    bgColor: 'bg-blue-50' },
-];
+const PROFILE_KEY = 'nschool-profile';
 
-const learningProgress = [
-  { label: 'Level 1 理財觀念', percent: 63, color: 'bg-amber-400' },
-  { label: 'Level 2 投資基礎', percent: 30, color: 'bg-primary-400' },
-];
+type ProfileData = {
+  displayName: string;
+  riskType: string;
+  notifications: { push: boolean; trading: boolean; price: boolean; learning: boolean };
+  darkMode: boolean;
+};
+
+const defaultProfile: ProfileData = {
+  displayName: '投資新手',
+  riskType: '穩健型',
+  notifications: { push: true, trading: true, price: true, learning: false },
+  darkMode: false,
+};
+
+function loadProfile(): ProfileData {
+  try {
+    if (typeof window === 'undefined') return defaultProfile;
+    const s = localStorage.getItem(PROFILE_KEY);
+    if (s) return { ...defaultProfile, ...JSON.parse(s) };
+  } catch {}
+  return defaultProfile;
+}
+
+function saveProfile(data: ProfileData) {
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(data)); } catch {}
+}
 
 type ToggleProps = { on: boolean; onChange: () => void };
 function Toggle({ on, onChange }: ToggleProps) {
@@ -33,16 +51,85 @@ function Toggle({ on, onChange }: ToggleProps) {
 
 type ActivePanel = 'notifications' | 'profile' | 'risk' | 'account' | 'help' | null;
 
+function useStats() {
+  const [stats, setStats] = useState([
+    { label: '記帳天數', value: 0, icon: Receipt,  color: 'text-primary-500', bgColor: 'bg-primary-50' },
+    { label: '模擬交易', value: 0, icon: BarChart3, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
+    { label: '完成課程', value: 0, icon: BookOpen,  color: 'text-blue-500',    bgColor: 'bg-blue-50' },
+  ]);
+
+  useEffect(() => {
+    try {
+      // Count unique transaction dates
+      const txRaw = localStorage.getItem('nschool-transactions');
+      const txs = txRaw ? JSON.parse(txRaw) : [];
+      const uniqueDays = new Set(txs.map((t: { date: string }) => t.date)).size;
+
+      // Count completed courses
+      const courseRaw = localStorage.getItem('nschool-courses');
+      const courses = courseRaw ? JSON.parse(courseRaw) : [];
+      const completedCourses = courses.filter((c: { completed?: boolean }) => c.completed).length;
+
+      setStats([
+        { label: '記帳天數', value: uniqueDays || 0,       icon: Receipt,  color: 'text-primary-500', bgColor: 'bg-primary-50' },
+        { label: '模擬交易', value: 0,                      icon: BarChart3, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
+        { label: '完成課程', value: completedCourses || 0,   icon: BookOpen,  color: 'text-blue-500',    bgColor: 'bg-blue-50' },
+      ]);
+    } catch {}
+  }, []);
+
+  return stats;
+}
+
+function usePortfolioStats() {
+  const [portfolio, setPortfolio] = useState({ total: 0, returnPct: 0 });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('nschool-accounts');
+      if (raw) {
+        const accounts = JSON.parse(raw);
+        const total = accounts.reduce((s: number, a: { balance: number }) => s + a.balance, 0);
+        setPortfolio({ total, returnPct: total > 0 ? ((total - 1000000) / 1000000) * 100 : 0 });
+      }
+    } catch {}
+  }, []);
+
+  return portfolio;
+}
+
 export default function ProfilePage() {
+  const [profile, setProfile] = useState<ProfileData>(defaultProfile);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
-  const [notifications, setNotifications] = useState({
-    push: true, trading: true, price: true, learning: false,
-  });
-  const [darkMode, setDarkMode] = useState(false);
-  const [riskType, setRiskType] = useState('穩健型');
+  const [editName, setEditName] = useState('');
+  const [toast, setToast] = useState('');
+
+  const stats = useStats();
+  const portfolio = usePortfolioStats();
+
+  useEffect(() => {
+    const loaded = loadProfile();
+    setProfile(loaded);
+    setEditName(loaded.displayName);
+  }, []);
+
+  function updateProfile(update: Partial<ProfileData>) {
+    setProfile((prev) => {
+      const next = { ...prev, ...update };
+      saveProfile(next);
+      return next;
+    });
+  }
 
   function togglePanel(panel: ActivePanel) {
     setActivePanel((p) => p === panel ? null : panel);
+  }
+
+  function handleSaveName() {
+    if (!editName.trim()) return;
+    updateProfile({ displayName: editName.trim() });
+    setToast('已儲存');
+    setTimeout(() => setToast(''), 2000);
   }
 
   const menuItems: { icon: LucideIcon; label: string; description: string; panel: ActivePanel; iconBg: string; iconColor: string }[] = [
@@ -51,6 +138,11 @@ export default function ProfilePage() {
     { icon: Bell,       label: '通知設定', description: '管理行情、學習推播通知',   panel: 'notifications', iconBg: 'bg-blue-50',    iconColor: 'text-blue-500' },
     { icon: Settings,   label: '帳戶設定', description: '密碼、連結 Google 帳號',   panel: 'account',       iconBg: 'bg-gray-100',   iconColor: 'text-gray-500' },
     { icon: HelpCircle, label: '幫助中心', description: '常見問題 & 聯絡客服',       panel: 'help',          iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500' },
+  ];
+
+  const learningProgress = [
+    { label: 'Level 1 理財觀念', percent: 63, color: 'bg-amber-400' },
+    { label: 'Level 2 投資基礎', percent: 30, color: 'bg-primary-400' },
   ];
 
   return (
@@ -67,17 +159,16 @@ export default function ProfilePage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold">投資新手</h2>
+                <h2 className="text-xl font-bold">{profile.displayName}</h2>
                 <button onClick={() => togglePanel('profile')} className="p-1 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-primary-300 text-sm">user@example.com</p>
               <div className="flex items-center gap-2 mt-2.5 flex-wrap">
                 <span className="flex items-center gap-1 text-xs bg-white/15 px-2.5 py-1 rounded-full font-medium">
                   <Star className="w-3 h-3 text-amber-300 fill-amber-300" /> Level 2
                 </span>
-                <span className="text-xs bg-white/15 px-2.5 py-1 rounded-full font-medium">{riskType}投資者</span>
+                <span className="text-xs bg-white/15 px-2.5 py-1 rounded-full font-medium">{profile.riskType}投資者</span>
                 <span className="flex items-center gap-1 text-xs bg-white/15 px-2.5 py-1 rounded-full font-medium">
                   <Award className="w-3 h-3 text-amber-300" /> 280 積分
                 </span>
@@ -87,13 +178,13 @@ export default function ProfilePage() {
           <div className="mt-5 pt-4 border-t border-white/20">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-primary-300 text-xs">模擬投資組合</p>
-                <p className="text-xl font-bold mt-0.5">NT$ 1,035,200</p>
+                <p className="text-primary-300 text-xs">總資產</p>
+                <p className="text-xl font-bold mt-0.5">NT$ {portfolio.total.toLocaleString()}</p>
               </div>
               <div className="text-right">
                 <p className="text-primary-300 text-xs">總報酬</p>
-                <p className="text-lg font-bold text-green-300 mt-0.5 flex items-center gap-1 justify-end">
-                  <TrendingUp className="w-4 h-4" /> +3.52%
+                <p className={`text-lg font-bold mt-0.5 flex items-center gap-1 justify-end ${portfolio.returnPct >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                  <TrendingUp className="w-4 h-4" /> {portfolio.returnPct >= 0 ? '+' : ''}{portfolio.returnPct.toFixed(2)}%
                 </p>
               </div>
             </div>
@@ -153,7 +244,12 @@ export default function ProfilePage() {
                   <p className="text-sm font-medium text-gray-700">{label}</p>
                   <p className="text-xs text-gray-400">{desc}</p>
                 </div>
-                <Toggle on={notifications[key]} onChange={() => setNotifications((n) => ({ ...n, [key]: !n[key] }))} />
+                <Toggle
+                  on={profile.notifications[key]}
+                  onChange={() => updateProfile({
+                    notifications: { ...profile.notifications, [key]: !profile.notifications[key] },
+                  })}
+                />
               </div>
             ))}
           </div>
@@ -197,7 +293,12 @@ export default function ProfilePage() {
                               <p className="text-sm font-medium text-gray-700">{label}</p>
                               <p className="text-xs text-gray-400">{desc}</p>
                             </div>
-                            <Toggle on={notifications[key]} onChange={() => setNotifications((n) => ({ ...n, [key]: !n[key] }))} />
+                            <Toggle
+                              on={profile.notifications[key]}
+                              onChange={() => updateProfile({
+                                notifications: { ...profile.notifications, [key]: !profile.notifications[key] },
+                              })}
+                            />
                           </div>
                         ))}
                       </div>
@@ -206,9 +307,16 @@ export default function ProfilePage() {
                       <div className="space-y-3 pt-4">
                         <div>
                           <label className="text-xs text-gray-400 font-medium block mb-1.5">顯示名稱</label>
-                          <input defaultValue="投資新手" className="w-full px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                          <input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="w-full px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                          />
                         </div>
-                        <button className="w-full py-2.5 rounded-xl bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition-colors active:scale-95">
+                        <button
+                          onClick={handleSaveName}
+                          className="w-full py-2.5 rounded-xl bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition-colors active:scale-95"
+                        >
                           儲存變更
                         </button>
                       </div>
@@ -219,14 +327,14 @@ export default function ProfilePage() {
                         {(['保守型', '穩健型', '積極型', '高風險型']).map((type) => (
                           <button
                             key={type}
-                            onClick={() => setRiskType(type)}
+                            onClick={() => updateProfile({ riskType: type })}
                             className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                              riskType === type
+                              profile.riskType === type
                                 ? 'border-primary-400 bg-primary-50 text-primary-700'
                                 : 'border-gray-100 hover:border-gray-200 text-gray-600 bg-white'
                             }`}
                           >
-                            {type} {riskType === type && '✓'}
+                            {type} {profile.riskType === type && '✓'}
                           </button>
                         ))}
                       </div>
@@ -236,28 +344,36 @@ export default function ProfilePage() {
                         <div className="flex items-center justify-between py-1">
                           <div>
                             <p className="text-sm font-medium text-gray-700">Google 帳號</p>
-                            <p className="text-xs text-gray-400">user@example.com</p>
+                            <p className="text-xs text-gray-400">尚未連結</p>
                           </div>
-                          <span className="text-xs px-2 py-1 rounded-lg bg-green-100 text-green-600 font-medium">已連結</span>
+                          <span className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-500 font-medium">待連結</span>
                         </div>
                         <div className="flex items-center justify-between py-1">
                           <div>
                             <p className="text-sm font-medium text-gray-700">深色模式</p>
                             <p className="text-xs text-gray-400">切換介面主題</p>
                           </div>
-                          <Toggle on={darkMode} onChange={() => setDarkMode((v) => !v)} />
+                          <Toggle on={profile.darkMode} onChange={() => updateProfile({ darkMode: !profile.darkMode })} />
                         </div>
                       </div>
                     )}
                     {item.panel === 'help' && (
                       <div className="space-y-2 pt-4">
-                        {(['如何開始使用？', '如何新增帳戶？', '模擬交易怎麼操作？', '如何聯絡客服？']).map((q) => (
-                          <button key={q} className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                            {q} <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
-                          </button>
+                        {([
+                          { q: '如何開始使用？', a: '從「記帳」頁面開始記錄收支，逐步建立財務概況。' },
+                          { q: '如何新增帳戶？', a: '前往「帳戶」頁面，點擊右上角「新增帳戶」即可。' },
+                          { q: '模擬交易怎麼操作？', a: '進入「交易」頁面，搜尋股票後即可進行模擬買賣。' },
+                          { q: '如何聯絡客服？', a: '直接寄信至下方的電子郵件地址。' },
+                        ]).map(({ q, a }) => (
+                          <details key={q} className="group">
+                            <summary className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer list-none">
+                              {q} <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 transition-transform group-open:rotate-90" />
+                            </summary>
+                            <p className="px-4 py-2 text-xs text-gray-500 leading-relaxed">{a}</p>
+                          </details>
                         ))}
                         <a href="mailto:louis@howwork.org" className="block w-full text-center py-2.5 text-sm text-primary-600 font-medium hover:underline mt-2">
-                          📧 louis@howwork.org 聯絡我們
+                          louis@howwork.org 聯絡我們
                         </a>
                       </div>
                     )}
@@ -275,6 +391,13 @@ export default function ProfilePage() {
 
         <p className="text-center text-xs text-gray-300 pb-2">nSchool Finance v0.1.0</p>
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-medium">
+          {toast}
+        </div>
+      )}
     </AppLayout>
   );
 }
