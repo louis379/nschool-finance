@@ -1,180 +1,113 @@
-# 設計系統 (Design System)
+# 設計系統（Design System）
 
-> nSchool Finance 視覺設計規範，確保產品一致性。
+> nSchool Finance UI 規範
 
 ---
 
 ## 色彩系統
 
-```css
-/* 主色 — 成長與財富 */
---color-primary: #10B981;        /* Emerald 500 */
---color-primary-dark: #059669;   /* Emerald 600 */
---color-primary-light: #34D399;  /* Emerald 400 */
+### 主色調（Primary）
+- **Primary**: `#6366F1`（Indigo-500）— 主要操作、CTA 按鈕
+- **Primary Hover**: `#4F46E5`（Indigo-600）
+- **Primary Light**: `#EEF2FF`（Indigo-50）— 背景高亮
 
-/* 語義色彩 */
---color-up: #10B981;             /* 上漲（綠）*/
---color-down: #EF4444;           /* 下跌（紅）*/
---color-warning: #F59E0B;        /* 警告（琥珀）*/
---color-info: #3B82F6;           /* 資訊（藍）*/
+### 功能色
+- **成功 / 漲**：`#22C55E`（Green-500）
+- **警告**：`#F59E0B`（Amber-500）
+- **錯誤 / 跌**：`#EF4444`（Red-500）
+- **資訊**：`#3B82F6`（Blue-500）
 
-/* 背景層次 — Dark Mode */
---color-bg-base: #111827;        /* Gray 900 — 最底層 */
---color-bg-surface: #1F2937;     /* Gray 800 — 卡片 */
---color-bg-elevated: #374151;    /* Gray 700 — 懸浮元素 */
+### 中性色
+- **背景**：`#F9FAFB`（Gray-50）
+- **卡片**：`#FFFFFF`
+- **邊框**：`#E5E7EB`（Gray-200）
+- **次要文字**：`#6B7280`（Gray-500）
+- **主要文字**：`#111827`（Gray-900）
 
-/* 文字 */
---color-text-primary: #F9FAFB;   /* Gray 50 */
---color-text-secondary: #9CA3AF; /* Gray 400 */
---color-text-muted: #6B7280;     /* Gray 500 */
+### 深色模式（Dark Mode — 規劃中）
+- 背景：`#0F172A`（Slate-900）
+- 卡片：`#1E293B`（Slate-800）
+- 文字：`#F1F5F9`（Slate-100）
 
-/* 邊框 */
---color-border: #374151;         /* Gray 700 */
+## 字型
+
+- **主字型**：`Inter`（Latin）+ `Noto Sans TC`（中文）
+- **數字字型**：`JetBrains Mono`（用於金額、報價等數字顯示）
+- **大小規範**：
+  - 標題（H1）：`text-2xl font-bold`（24px）
+  - 副標題（H2）：`text-xl font-semibold`（20px）
+  - 正文：`text-base`（16px）
+  - 小字：`text-sm`（14px）
+  - 極小字：`text-xs`（12px）
+
+## 間距
+
+採用 Tailwind 的 4px 基準：
+- 元件內部間距：`p-4`（16px）
+- 元件之間間距：`gap-4` 或 `space-y-4`
+- 頁面邊距：`px-4`（手機）/ `px-6`（平板）/ `px-8`（桌面）
+- 卡片圓角：`rounded-xl`（12px）
+- 按鈕圓角：`rounded-lg`（8px）
+
+## 元件規範
+
+### 按鈕
+
+```html
+<!-- 主要按鈕 -->
+<button class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+  主要操作
+</button>
+
+<!-- 次要按鈕 -->
+<button class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors">
+  次要操作
+</button>
+
+<!-- 危險按鈕 -->
+<button class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+  刪除
+</button>
 ```
 
----
+### 卡片
 
-## 字型系統
-
-```css
-/* 字型家族 */
-font-family: 'Inter', -apple-system, sans-serif;
-
-/* 字型大小 */
---text-xs:   12px / 1.5;
---text-sm:   14px / 1.5;
---text-base: 16px / 1.5;
---text-lg:   18px / 1.5;
---text-xl:   20px / 1.5;
---text-2xl:  24px / 1.3;
---text-3xl:  30px / 1.2;
-
-/* 字重 */
---font-normal:   400;
---font-medium:   500;
---font-semibold: 600;
---font-bold:     700;
-
-/* 數字特殊處理 */
-.number { font-variant-numeric: tabular-nums; }
-```
-
----
-
-## 間距系統
-
-使用 4px 基礎單位（Tailwind 預設）：
-
-```
-4px  = p-1  (最小間距)
-8px  = p-2
-12px = p-3
-16px = p-4  (標準間距)
-20px = p-5
-24px = p-6  (區塊間距)
-32px = p-8
-48px = p-12 (大區塊)
-```
-
----
-
-## 組件規範
-
-### 卡片 (Card)
-```jsx
-<div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-  {/* 內容 */}
+```html
+<div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+  <!-- 卡片內容 -->
 </div>
 ```
 
-### 主要按鈕 (Primary Button)
-```jsx
-<button className="bg-emerald-500 hover:bg-emerald-600 text-white
-                   font-semibold px-6 py-3 rounded-lg
-                   transition-colors duration-200">
-  立即買入
-</button>
+### 輸入框
+
+```html
+<input class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-colors" />
 ```
 
-### 危險按鈕 (Danger Button)
-```jsx
-<button className="bg-red-500/10 hover:bg-red-500/20 text-red-400
-                   font-semibold px-6 py-3 rounded-lg
-                   transition-colors duration-200 border border-red-500/20">
-  賣出
-</button>
-```
+## 動畫
 
-### 漲跌顯示
-```jsx
-// 上漲
-<span className="text-emerald-500 font-semibold">▲ 2.45%</span>
-
-// 下跌
-<span className="text-red-500 font-semibold">▼ 1.23%</span>
-```
-
-### 標籤 (Badge)
-```jsx
-<span className="bg-emerald-500/10 text-emerald-400 text-xs
-                 font-medium px-2 py-0.5 rounded-full">
-  ETF
-</span>
-```
-
----
-
-## 動畫規範
-
-```css
-/* 標準過渡 */
-.transition-standard { transition: all 200ms ease; }
-
-/* 頁面切換 */
-.page-enter { animation: fadeSlideIn 300ms ease; }
-
-/* 數字跳動 */
-.number-update { animation: countUp 500ms ease; }
-
-/* 卡片進入 */
-.card-appear { animation: scaleIn 200ms ease; }
-```
-
----
-
-## 圖示系統
-
-使用 `lucide-react`，保持一致性：
-
-```jsx
-import { TrendingUp, TrendingDown, BookOpen,
-         Wallet, BarChart3, Settings } from 'lucide-react';
-
-// 標準大小
-<TrendingUp className="w-5 h-5" />   // 20px — 行內圖示
-<BarChart3 className="w-6 h-6" />    // 24px — 功能圖示
-<Wallet className="w-8 h-8" />       // 32px — 強調圖示
-```
-
----
+- **轉場**：`transition-all duration-200 ease-in-out`
+- **頁面切換**：fade + slide（200ms）
+- **載入狀態**：pulse skeleton
+- **數字變化**：count-up animation
+- **手勢回饋**：scale on press（`active:scale-95`）
 
 ## 響應式斷點
 
-```
-手機:  375px - 767px  (主要設計對象)
-平板:  768px - 1023px
-桌面:  1024px+
-```
+| 斷點 | 寬度 | 用途 |
+|------|------|------|
+| 預設 | < 640px | 手機（主要開發目標） |
+| `sm` | ≥ 640px | 大螢幕手機 |
+| `md` | ≥ 768px | 平板 |
+| `lg` | ≥ 1024px | 桌面 |
 
----
+**設計原則：Mobile First**，所有設計先從手機版開始。
 
-## 無障礙規範
+## 圖示
 
-- 色彩對比：文字 vs 背景 ≥ 4.5:1
-- 所有互動元素有 focus 樣式
-- 圖片有 alt text
-- 表單有 label
-- 錯誤訊息用文字+圖示，不只靠顏色
+- 使用 `lucide-react` 圖示庫
+- 圖示大小：`w-5 h-5`（20px）為預設
+- 導航圖示：`w-6 h-6`（24px）
 
 ---
 

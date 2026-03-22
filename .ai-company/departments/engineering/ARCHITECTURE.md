@@ -1,44 +1,35 @@
-# 系統架構文件 (Architecture)
+# 系統架構文件
 
-> nSchool Finance 技術架構概覽，供 AI 在開發時參考。
-
----
-
-## 系統架構圖
-
-```
-┌─────────────────────────────────────────────────┐
-│                   用戶裝置                        │
-│  iOS App  /  Android App  /  Web Browser          │
-└────────────────────┬────────────────────────────┘
-                     │ HTTPS
-┌────────────────────▼────────────────────────────┐
-│              Next.js Application                  │
-│              (Zeabur / Docker)                    │
-│                                                   │
-│  ┌─────────────┐  ┌──────────────────────────┐  │
-│  │  App Router  │  │  API Routes (/api/*)      │  │
-│  │  (Pages)     │  │  - /api/stock/quote       │  │
-│  │             │  │  - /api/news               │  │
-│  │  - /        │  │  - /api/ai/analyze         │  │
-│  │  - /trade   │  │  - /api/portfolio          │  │
-│  │  - /learn   │  └──────────────────────────┘  │
-│  │  - /news    │                                  │
-│  │  - /profile │                                  │
-│  └─────────────┘                                  │
-└──────────┬──────────────────┬────────────────────┘
-           │                  │
-┌──────────▼──────┐  ┌────────▼──────────────────┐
-│   Supabase       │  │  外部 API                  │
-│                  │  │                            │
-│  - PostgreSQL    │  │  - Yahoo Finance (行情)    │
-│  - Auth          │  │  - Alpha Vantage (備用)    │
-│  - Storage       │  │  - Claude API (AI分析)     │
-│  - Realtime      │  │  - NewsAPI (新聞)           │
-└─────────────────┘  └────────────────────────────┘
-```
+> nSchool Finance 技術架構
 
 ---
+
+## 架構總覽
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    用戶端（Browser）                   │
+│                  Next.js 15 (App Router)              │
+│         React Server Components + Client Components   │
+└─────────────────┬───────────────────────┬─────────────┘
+                  │                       │
+                  ▼                       ▼
+┌─────────────────────────┐  ┌──────────────────────────┐
+│    Next.js API Routes    │  │   Supabase Realtime      │
+│    /api/*               │  │   (WebSocket)             │
+│    - Auth middleware     │  │   - 即時行情              │
+│    - Rate limiting      │  │   - 通知                  │
+└─────────┬───────────────┘  └──────────┬───────────────┘
+          │                              │
+          ▼                              ▼
+┌─────────────────────────────────────────────────────┐
+│                  Supabase (BaaS)                     │
+│  ┌───────────┐ ┌───────────┐ ┌───────────────────┐  │
+│  │ PostgreSQL│ │   Auth    │ │  Storage (Files)  │  │
+│  │  Database │ │  System   │ │  - 用戶頭像        │  │
+│  └───────────┘ └───────────┘ └───────────────────┘  │
+└─────────────────────────────────────────────────────┘
+```
 
 ## Monorepo 結構
 
@@ -47,128 +38,69 @@ nschool-finance/
 ├── apps/
 │   └── web/                    # Next.js 主應用
 │       ├── app/                # App Router 頁面
-│       │   ├── (auth)/         # 認證頁面群組
-│       │   ├── (app)/          # 主要功能頁面群組
-│       │   └── api/            # API Routes
-│       ├── components/         # React 組件
-│       ├── lib/                # 工具函式、hooks
+│       │   ├── (auth)/         # 認證相關頁面
+│       │   ├── (dashboard)/    # 主要功能頁面
+│       │   └── api/            # API 路由
+│       ├── components/         # React 元件
+│       ├── lib/                # 工具函數
 │       └── styles/             # 全域樣式
 ├── packages/
-│   ├── ui/                     # 共用 UI 組件庫
-│   ├── database/               # Supabase 型別定義
-│   └── config/                 # 共用設定（ESLint、TS等）
+│   ├── ui/                     # 共享 UI 元件庫
+│   └── config/                 # 共享設定
 ├── supabase/
-│   ├── migrations/             # 資料庫遷移檔
-│   └── seed.sql                # 測試資料
-└── .ai-company/                # AI 公司管理架構
+│   └── migrations/             # 資料庫遷移檔案
+└── .ai-company/                # AI 管理架構（本文件所在）
 ```
 
----
+## 核心模組
 
-## 資料庫 Schema 概覽
+### 1. 記帳模組（Transactions）
+- CRUD 操作
+- 分類管理
+- 點擊刪除 + 復原機制
+- 記住上次使用的分類
 
-```sql
--- 用戶表（Supabase Auth 管理）
-auth.users
+### 2. 模擬交易模組（Trading Simulation）
+- 即時行情 API 串接（WebSocket）
+- 買/賣/持倉管理
+- 快速選量按鈕（25%/50%/75%/100%）
+- 市場情緒指標
 
--- 用戶個人檔案
-public.profiles (
-  id uuid references auth.users,
-  display_name text,
-  avatar_url text,
-  investment_level text,  -- beginner/intermediate/advanced
-  created_at timestamptz
-)
+### 3. AI 分析模組
+- 財務健康分析
+- 投資建議
+- 支出模式分析
 
--- 模擬帳戶
-public.paper_accounts (
-  id uuid,
-  user_id uuid references profiles,
-  name text,
-  initial_balance decimal,
-  current_balance decimal,
-  created_at timestamptz
-)
+### 4. 學習模組（Learning）
+- 課程內容
+- 進度追蹤（API 已串接）
+- 測驗系統
 
--- 模擬持倉
-public.paper_positions (
-  id uuid,
-  account_id uuid references paper_accounts,
-  symbol text,             -- 股票代號
-  shares decimal,          -- 持股數
-  avg_cost decimal,        -- 平均成本
-  created_at timestamptz,
-  updated_at timestamptz
-)
+### 5. 認證模組（Auth）
+- 登入 / 註冊
+- 忘記密碼
+- Auth middleware
 
--- 模擬交易紀錄
-public.paper_trades (
-  id uuid,
-  account_id uuid references paper_accounts,
-  symbol text,
-  action text,             -- buy/sell
-  shares decimal,
-  price decimal,
-  fee decimal,
-  executed_at timestamptz
-)
+## 部署架構
 
--- 學習進度
-public.learning_progress (
-  user_id uuid references profiles,
-  course_id text,
-  lesson_id text,
-  completed_at timestamptz,
-  score int
-)
-
--- 財務記帳
-public.transactions (
-  id uuid,
-  user_id uuid references profiles,
-  amount decimal,
-  category text,
-  description text,
-  date date,
-  created_at timestamptz
-)
+```
+GitHub (main branch)
+    │
+    ▼ (自動部署)
+Zeabur
+    ├── Web Service (Next.js)
+    └── 環境變數管理
 ```
 
----
+## 關鍵技術決策
 
-## 關鍵設計決策
-
-### 1. Next.js App Router
-選用 App Router 而非 Pages Router，利用 Server Components 減少 client JS bundle size，提升 SEO 和首次載入效能。
-
-### 2. Supabase 作為 BaaS
-避免自建後端，利用 Supabase 的 Auth、Realtime、RLS 功能，加快開發速度。後續若有需要可遷移到自建後端。
-
-### 3. API Routes 作為代理層
-外部 API key 不暴露在前端，所有第三方 API 呼叫透過 Next.js API Routes 代理，保護 API 憑證。
-
-### 4. pnpm Monorepo
-使用 Turborepo 管理 monorepo，未來可以輕鬆拆分成多個子應用（Web、Native、Admin）。
-
----
-
-## 效能考量
-
-- **圖片：** 使用 `next/image` 自動優化
-- **字型：** 使用 `next/font` 消除 CLS
-- **程式碼分割：** `dynamic()` 懶加載重型組件（圖表、OCR）
-- **快取：** API Route 回應適當設定 Cache-Control
-- **狀態管理：** 優先使用 Server State（React Query/SWR），避免過度使用 Client State
-
----
-
-## 安全性設計
-
-- **RLS：** 所有 Supabase 表格啟用 Row Level Security
-- **環境變數：** 敏感 key 存在 Zeabur 環境變數，不進版控
-- **CORS：** API Routes 只允許同源
-- **輸入驗證：** 所有 API 輸入用 Zod 驗證
-- **Auth：** Supabase JWT，有效期 1 小時 + Refresh Token
+| 決策 | 選擇 | 原因 |
+|------|------|------|
+| 框架 | Next.js 15 | SSR + API Routes + App Router |
+| 樣式 | TailwindCSS | 快速開發、一致性好 |
+| 資料庫 | Supabase | 免費額度大、Auth 內建、Realtime |
+| 部署 | Zeabur | 台灣團隊、對 Next.js 支援好 |
+| 套件管理 | pnpm | 快、省硬碟、Monorepo 支援好 |
 
 ---
 

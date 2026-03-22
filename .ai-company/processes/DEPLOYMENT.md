@@ -1,203 +1,91 @@
-# 部署流程 (Deployment)
+# 部署流程
 
-> nSchool Finance 的完整部署流程：GitHub → Actions → Docker → Zeabur
+> 從程式碼提交到上線的完整流程
 
 ---
 
 ## 部署架構
 
 ```
-開發者/AI Push
-      │
-      ▼
-GitHub Repository (main branch)
-      │
-      ▼
-GitHub Actions 觸發
-      │
-      ├── pnpm install
-      ├── TypeScript 型別檢查
-      ├── ESLint 檢查
-      ├── 單元測試
-      └── pnpm build
-            │
-            ▼ (通過後)
-      Docker Build
-            │
-            ▼
-      推送到 Container Registry
-            │
-            ▼
-      Zeabur 自動拉取新映像
-            │
-            ▼
-      Health Check 確認
-            │
-            ▼
-      部署完成 ✅
+開發者（人 / AI）
+    │
+    ▼ git push
+GitHub (main branch)
+    │
+    ▼ 自動觸發
+GitHub Actions (CI)
+    ├── pnpm install
+    ├── pnpm lint
+    ├── pnpm build
+    └── pnpm test
+    │
+    ▼ CI 通過
+Zeabur（自動部署）
+    └── Production 環境
 ```
 
----
+## 部署前檢查清單
 
-## GitHub Actions 設定
+### AI Agent 自動檢查
 
-```yaml
-# .github/workflows/deploy.yml（示意）
-name: Deploy to Zeabur
+- [ ] TypeScript 編譯無錯誤
+- [ ] ESLint 規則全部通過
+- [ ] 現有測試全部通過
+- [ ] Build 成功
 
-on:
-  push:
-    branches: [main]
+### 需要人確認
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+- [ ] 確認改動內容符合預期
+- [ ] 確認不涉及資料庫 schema 變更
+- [ ] 確認不涉及環境變數變更
+- [ ] 確認不影響現有用戶數據
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+## 部署類型
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
+### 1. 自動部署（常規更新）
 
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Type check
-        run: pnpm typecheck
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build
-        run: pnpm build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-
-      # Zeabur 透過 GitHub 整合自動部署，不需要額外步驟
-```
-
----
-
-## Dockerfile
-
-```dockerfile
-# Dockerfile
-FROM node:20-alpine AS base
-
-# 安裝 pnpm
-RUN npm install -g pnpm
-
-# 安裝依賴
-FROM base AS deps
-WORKDIR /app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/web/package.json ./apps/web/
-COPY packages/*/package.json ./packages/*/
-RUN pnpm install --frozen-lockfile
-
-# Build
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN pnpm build
-
-# 生產映像
-FROM base AS runner
-WORKDIR /app
-ENV NODE_ENV production
-COPY --from=builder /app/apps/web/.next/standalone ./
-COPY --from=builder /app/apps/web/.next/static ./.next/static
-COPY --from=builder /app/apps/web/public ./public
-
-EXPOSE 3000
-ENV PORT 3000
-CMD ["node", "server.js"]
-```
-
----
-
-## 環境設定
-
-### GitHub Secrets（CI/CD 使用）
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-```
-
-### Zeabur 環境變數（Runtime 使用）
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-ANTHROPIC_API_KEY
-NEWS_API_KEY
-ALPHA_VANTAGE_API_KEY
-NEXT_PUBLIC_APP_URL
-```
-
----
-
-## 部署環境
-
-| 環境 | Branch | 用途 |
-|------|--------|------|
-| Production | main | 正式用戶 |
-| Staging | staging | QA 測試 |
-| Preview | PR | PR 預覽（Zeabur 自動） |
-
----
-
-## 資料庫遷移
-
-```bash
-# 本地開發測試遷移
-supabase db diff -f migration_name    # 生成 migration 檔
-supabase db push                       # 推送到本地
-
-# 生產環境遷移（需人確認）
-supabase db push --linked              # 推送到 Supabase 雲端
-
-# ⚠️ 生產遷移前必須：
-# 1. 在 Staging 環境測試通過
-# 2. 確認遷移可回滾
-# 3. 人確認後執行
-```
-
----
-
-## 部署後確認清單
+適用：UX 優化、Bug 修復、效能改善
 
 ```
-部署完成後 5 分鐘內確認：
-
-[ ] 網站可以正常訪問
-[ ] 登入流程正常
-[ ] 行情 API 有回傳資料
-[ ] Supabase 連線正常（查看 Dashboard）
-[ ] GitHub Actions 全部綠燈
-[ ] 沒有 JS 錯誤（查看 Console）
+AI 完成改動 → CI 通過 → 人確認 → Push 到 main → Zeabur 自動部署
 ```
 
----
+### 2. 手動部署（需要額外步驟）
 
-## 緊急回滾
+適用：資料庫變更、環境變數變更
 
-```bash
-# 方法一：Zeabur 介面回滾（推薦）
-# Zeabur Dashboard → Deployments → 選擇上一個版本 → Redeploy
-
-# 方法二：Git Revert（需部署）
-git revert HEAD --no-edit
-git push origin main
-# 等待 GitHub Actions 完成新部署
 ```
+AI 準備改動 → 人確認 → 執行 DB migration → 更新環境變數 → Push 到 main
+```
+
+### 3. 緊急修復（Hotfix）
+
+適用：Production bug
+
+```
+AI 修復 → 快速測試 → 人確認 → Cherry-pick 到 main → 立即部署
+```
+
+## 回滾流程
+
+如果部署後發現問題：
+
+1. **立即回滾**：在 Zeabur Dashboard 選擇上一個成功的部署版本
+2. **分析問題**：查看錯誤日誌，找出問題原因
+3. **修復**：在新的 branch 修復問題
+4. **重新部署**：通過正常流程再次部署
+5. **記錄**：在 `departments/operations/RUNBOOK.md` 記錄事件
+
+## Git 分支策略
+
+```
+main ─────────────────────────── 生產環境
+  └── claude/xxx ──── AI 的工作分支（完成後合併到 main）
+```
+
+- `main`：永遠是可部署的狀態
+- `claude/*`：AI Agent 的工作分支，完成後 merge 到 main
+- 不需要 Pull Request（因為只有 AI + Louis 兩個「人」）
 
 ---
 
