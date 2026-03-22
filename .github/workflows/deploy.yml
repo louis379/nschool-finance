@@ -1,0 +1,55 @@
+name: Build, Push, and Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trigger Zeabur redeploy
+        run: |
+          curl -s -X POST https://gateway.zeabur.com/graphql \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.ZEABUR_TOKEN }}" \
+            -d '{
+              "query": "mutation { redeployService(serviceID: \"69beaf82ceee47754dac1144\", environmentID: \"69bda69476bc68ba374c9f3e\") }"
+            }' | tee /tmp/zeabur-response.json
+          cat /tmp/zeabur-response.json
+          if grep -q '"errors"' /tmp/zeabur-response.json; then
+            echo "Zeabur redeploy failed"
+            exit 1
+          fi
+          echo "Zeabur redeploy triggered successfully"
