@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import {
   TrendingUp, TrendingDown, Search, Star, X,
-  Wallet, BarChart3, ArrowUpRight, Clock,
+  Wallet, BarChart3, ArrowUpRight, Clock, CheckCircle,
 } from 'lucide-react';
 
 type MarketTab = 'tw' | 'us' | 'crypto';
@@ -44,14 +44,16 @@ const mockStocks: Record<MarketTab, Stock[]> = {
 
 const tabLabels: Record<MarketTab, string> = { tw: '台股', us: '美股', crypto: '加密貨幣' };
 
-const portfolioStats = [
-  { label: '總資產',    value: 'NT$ 1,035,200', sub: '+3.52%',  isUp: true,  icon: Wallet },
-  { label: '已投入',    value: 'NT$ 780,000',   sub: '佔 75%',  isUp: true,  icon: BarChart3 },
-  { label: '未實現損益', value: '+NT$ 35,200',   sub: '+4.51%',  isUp: true,  icon: TrendingUp },
-  { label: '今日損益',  value: '+NT$ 5,800',    sub: '+0.56%',  isUp: true,  icon: ArrowUpRight },
-];
+type Holding = {
+  symbol: string;
+  name: string;
+  qty: number;
+  avgCost: number;
+  currentPrice: number;
+  pnlPercent: number;
+};
 
-const holdings = [
+const defaultHoldings: Holding[] = [
   { symbol: '2330', name: '台積電', qty: 200, avgCost: 980,   currentPrice: 1025,  pnlPercent: 4.59 },
   { symbol: '0050', name: '元大台灣50', qty: 1000, avgCost: 178, currentPrice: 185.3, pnlPercent: 4.10 },
   { symbol: 'NVDA', name: 'NVIDIA',   qty: 10,  avgCost: 780,   currentPrice: 875.28, pnlPercent: 12.22 },
@@ -65,6 +67,25 @@ export default function TradePage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set(['2330', 'NVDA']));
   const [tradeModal, setTradeModal] = useState<TradeModalState>(null);
   const [tradeQty, setTradeQty] = useState('1');
+  const [tradeError, setTradeError] = useState('');
+  const [toast, setToast] = useState('');
+
+  const [balance, setBalance] = useState(220000);
+  const [userHoldings, setUserHoldings] = useState<Holding[]>(defaultHoldings);
+
+  // Load from localStorage after mount
+  useEffect(() => {
+    try {
+      const savedBalance = localStorage.getItem('nschool-balance');
+      if (savedBalance) setBalance(parseFloat(savedBalance));
+
+      const savedHoldings = localStorage.getItem('nschool-holdings');
+      if (savedHoldings) setUserHoldings(JSON.parse(savedHoldings));
+
+      const savedFavorites = localStorage.getItem('nschool-favorites');
+      if (savedFavorites) setFavorites(new Set(JSON.parse(savedFavorites)));
+    } catch {}
+  }, []);
 
   const stocks = mockStocks[activeTab].filter(
     (s) =>
@@ -72,22 +93,101 @@ export default function TradePage() {
       s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const totalAssets = balance + userHoldings.reduce((sum, h) => sum + h.currentPrice * h.qty, 0);
+  const totalInvested = userHoldings.reduce((sum, h) => sum + h.avgCost * h.qty, 0);
+  const unrealizedPnL = userHoldings.reduce((sum, h) => sum + (h.currentPrice - h.avgCost) * h.qty, 0);
+
   function toggleFavorite(symbol: string) {
     setFavorites((prev) => {
       const next = new Set(prev);
       next.has(symbol) ? next.delete(symbol) : next.add(symbol);
+      try { localStorage.setItem('nschool-favorites', JSON.stringify([...next])); } catch {}
       return next;
     });
   }
 
   function openModal(stock: Stock, side: 'buy' | 'sell') {
     setTradeQty('1');
+    setTradeError('');
     setTradeModal({ stock, side });
   }
 
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  }
+
+  function confirmTrade() {
+    if (!tradeModal) return;
+    const qty = parseInt(tradeQty) || 0;
+    if (qty <= 0) { setTradeError('請輸入有效數量'); return; }
+
+    const { stock, side } = tradeModal;
+    const cost = qty * stock.price;
+    const fee = Math.round(cost * 0.001425);
+
+    if (side === 'buy') {
+      const total = cost + fee;
+      if (total > balance) { setTradeError(`餘額不足，需要 NT$ ${total.toLocaleString()}`); return; }
+
+      const newBalance = balance - total;
+      setBalance(newBalance);
+      try { localStorage.setItem('nschool-balance', String(newBalance)); } catch {}
+
+      const existingIdx = userHoldings.findIndex((h) => h.symbol === stock.symbol);
+      let newHoldings: Holding[];
+      if (existingIdx >= 0) {
+        const existing = userHoldings[existingIdx];
+        const newQty = existing.qty + qty;
+        const newAvgCost = (existing.avgCost * existing.qty + stock.price * qty) / newQty;
+        const pnlPct = ((stock.price - newAvgCost) / newAvgCost) * 100;
+        newHoldings = [...userHoldings];
+        newHoldings[existingIdx] = { ...existing, qty: newQty, avgCost: newAvgCost, currentPrice: stock.price, pnlPercent: pnlPct };
+      } else {
+        newHoldings = [...userHoldings, {
+          symbol: stock.symbol, name: stock.name, qty,
+          avgCost: stock.price, currentPrice: stock.price, pnlPercent: 0,
+        }];
+      }
+      setUserHoldings(newHoldings);
+      try { localStorage.setItem('nschool-holdings', JSON.stringify(newHoldings)); } catch {}
+      setTradeModal(null);
+      showToast(`✅ 成功買入 ${stock.symbol} × ${qty} 股`);
+    } else {
+      const existingIdx = userHoldings.findIndex((h) => h.symbol === stock.symbol);
+      if (existingIdx < 0) { setTradeError('您沒有持倉此股票'); return; }
+      const existing = userHoldings[existingIdx];
+      if (qty > existing.qty) { setTradeError(`持倉不足，目前持有 ${existing.qty} 股`); return; }
+
+      const proceeds = cost - fee;
+      const newBalance = balance + proceeds;
+      setBalance(newBalance);
+      try { localStorage.setItem('nschool-balance', String(newBalance)); } catch {}
+
+      let newHoldings: Holding[];
+      if (qty === existing.qty) {
+        newHoldings = userHoldings.filter((_, i) => i !== existingIdx);
+      } else {
+        newHoldings = [...userHoldings];
+        newHoldings[existingIdx] = { ...existing, qty: existing.qty - qty };
+      }
+      setUserHoldings(newHoldings);
+      try { localStorage.setItem('nschool-holdings', JSON.stringify(newHoldings)); } catch {}
+      setTradeModal(null);
+      showToast(`✅ 成功賣出 ${stock.symbol} × ${qty} 股`);
+    }
+  }
+
   const totalCost = tradeModal
-    ? (parseFloat(tradeQty) || 0) * tradeModal.stock.price
+    ? (parseInt(tradeQty) || 0) * tradeModal.stock.price
     : 0;
+
+  const portfolioStats = [
+    { label: '總資產',    value: `NT$ ${Math.round(totalAssets).toLocaleString()}`,     sub: '+3.52%',  isUp: true,  icon: Wallet },
+    { label: '已投入',    value: `NT$ ${Math.round(totalInvested).toLocaleString()}`,    sub: '持倉市值', isUp: true,  icon: BarChart3 },
+    { label: '未實現損益', value: `${unrealizedPnL >= 0 ? '+' : ''}NT$ ${Math.round(unrealizedPnL).toLocaleString()}`, sub: unrealizedPnL >= 0 ? '盈利中' : '虧損中', isUp: unrealizedPnL >= 0, icon: TrendingUp },
+    { label: '可用資金',  value: `NT$ ${Math.round(balance).toLocaleString()}`,          sub: '虛擬資金', isUp: true,  icon: ArrowUpRight },
+  ];
 
   return (
     <AppLayout>
@@ -102,7 +202,7 @@ export default function TradePage() {
             <Wallet className="w-4 h-4 text-primary-400" />
             <div>
               <p className="text-[10px] text-primary-400 leading-none">可用資金</p>
-              <p className="text-sm font-bold text-primary-600 leading-snug">NT$ 220,000</p>
+              <p className="text-sm font-bold text-primary-600 leading-snug">NT$ {Math.round(balance).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -135,33 +235,37 @@ export default function TradePage() {
         {/* My Holdings */}
         <div className="bg-white rounded-[var(--radius-card)] p-5 mb-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">我的持倉</h2>
-          <div className="space-y-2">
-            {holdings.map((h) => {
-              const pnlAmt = (h.currentPrice - h.avgCost) * h.qty;
-              const isUp = pnlAmt >= 0;
-              return (
-                <div key={h.symbol} className="flex items-center justify-between py-2 px-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-primary-600">{h.symbol.slice(0, 2)}</span>
+          {userHoldings.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">尚無持倉，開始交易吧！</p>
+          ) : (
+            <div className="space-y-2">
+              {userHoldings.map((h) => {
+                const pnlAmt = (h.currentPrice - h.avgCost) * h.qty;
+                const isUp = pnlAmt >= 0;
+                return (
+                  <div key={h.symbol} className="flex items-center justify-between py-2 px-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-primary-600">{h.symbol.slice(0, 2)}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{h.symbol}</p>
+                        <p className="text-xs text-gray-400">{h.name} · {h.qty} 股</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">{h.symbol}</p>
-                      <p className="text-xs text-gray-400">{h.name} · {h.qty} 股</p>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-gray-800 tabular-nums">
+                        NT$ {(h.currentPrice * h.qty).toLocaleString()}
+                      </p>
+                      <p className={`text-xs font-semibold tabular-nums ${isUp ? 'text-up' : 'text-down'}`}>
+                        {isUp ? '+' : ''}NT$ {Math.round(pnlAmt).toLocaleString()} ({isUp ? '+' : ''}{h.pnlPercent.toFixed(2)}%)
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-gray-800 tabular-nums">
-                      NT$ {(h.currentPrice * h.qty).toLocaleString()}
-                    </p>
-                    <p className={`text-xs font-semibold tabular-nums ${isUp ? 'text-up' : 'text-down'}`}>
-                      {isUp ? '+' : ''}NT$ {Math.round(pnlAmt).toLocaleString()} ({isUp ? '+' : ''}{h.pnlPercent.toFixed(2)}%)
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Market Tabs & Search */}
@@ -194,7 +298,7 @@ export default function TradePage() {
             </div>
           </div>
 
-          {/* Mobile Card List (sm only) */}
+          {/* Mobile Card List */}
           <div className="md:hidden space-y-2">
             {stocks.map((stock) => {
               const isUp = stock.change >= 0;
@@ -309,6 +413,14 @@ export default function TradePage() {
         </div>
       </div>
 
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-800 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-medium animate-fade-in">
+          <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+          {toast}
+        </div>
+      )}
+
       {/* Trade Modal */}
       {tradeModal && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
@@ -359,7 +471,7 @@ export default function TradePage() {
                 <input
                   type="number"
                   value={tradeQty}
-                  onChange={(e) => setTradeQty(e.target.value)}
+                  onChange={(e) => { setTradeQty(e.target.value); setTradeError(''); }}
                   min="1"
                   className="flex-1 text-center text-xl font-bold text-gray-800 border-2 border-gray-100 focus:border-primary-300 rounded-xl py-2 outline-none transition-colors"
                 />
@@ -373,7 +485,7 @@ export default function TradePage() {
             </div>
 
             {/* Cost estimate */}
-            <div className="bg-gray-50 rounded-xl p-3 mb-5 space-y-1.5">
+            <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-1.5">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">預估金額</span>
                 <span className="font-semibold text-gray-800 tabular-nums">
@@ -388,11 +500,24 @@ export default function TradePage() {
                   NT$ {(totalCost * 0.001425).toFixed(0)}
                 </span>
               </div>
+              {tradeModal.side === 'buy' && (
+                <div className="flex justify-between text-xs pt-1 border-t border-gray-100">
+                  <span className="text-gray-400">可用餘額</span>
+                  <span className={`font-semibold tabular-nums ${balance >= totalCost ? 'text-gray-600' : 'text-down'}`}>
+                    NT$ {Math.round(balance).toLocaleString()}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Error */}
+            {tradeError && (
+              <p className="text-xs text-down font-medium mb-3 text-center">{tradeError}</p>
+            )}
 
             {/* Confirm */}
             <button
-              onClick={() => setTradeModal(null)}
+              onClick={confirmTrade}
               className={`w-full py-3.5 rounded-xl text-white font-bold text-sm transition-all active:scale-95 ${
                 tradeModal.side === 'buy'
                   ? 'bg-up hover:bg-green-600'

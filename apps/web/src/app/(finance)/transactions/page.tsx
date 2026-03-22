@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import {
   Plus, Camera, Filter, Calendar,
   ArrowDownLeft, ArrowUpRight, Wallet,
   Utensils, Car, Banknote, ShoppingBag, TrendingUp,
-  Home, Smartphone, Tv, X, LucideIcon,
+  Home, Smartphone, Tv, X, LucideIcon, CheckCircle,
 } from 'lucide-react';
 
 type TxType = 'all' | 'income' | 'expense';
@@ -14,16 +14,18 @@ type TxType = 'all' | 'income' | 'expense';
 type CategoryKey = '餐飲' | '交通' | '薪資' | '購物' | '投資收入' | '居住' | '通訊' | '娛樂';
 
 const categoryConfig: Record<CategoryKey, { icon: LucideIcon; bg: string; text: string }> = {
-  '餐飲':   { icon: Utensils,  bg: 'bg-orange-100', text: 'text-orange-500' },
-  '交通':   { icon: Car,       bg: 'bg-sky-100',    text: 'text-sky-500' },
-  '薪資':   { icon: Banknote,  bg: 'bg-green-100',  text: 'text-green-600' },
-  '購物':   { icon: ShoppingBag, bg: 'bg-pink-100', text: 'text-pink-500' },
+  '餐飲':   { icon: Utensils,   bg: 'bg-orange-100', text: 'text-orange-500' },
+  '交通':   { icon: Car,        bg: 'bg-sky-100',    text: 'text-sky-500' },
+  '薪資':   { icon: Banknote,   bg: 'bg-green-100',  text: 'text-green-600' },
+  '購物':   { icon: ShoppingBag, bg: 'bg-pink-100',  text: 'text-pink-500' },
   '投資收入': { icon: TrendingUp, bg: 'bg-primary-100', text: 'text-primary-500' },
-  '居住':   { icon: Home,       bg: 'bg-amber-100',  text: 'text-amber-600' },
-  '通訊':   { icon: Smartphone, bg: 'bg-blue-100',   text: 'text-blue-500' },
-  '娛樂':   { icon: Tv,         bg: 'bg-purple-100', text: 'text-purple-500' },
+  '居住':   { icon: Home,        bg: 'bg-amber-100',  text: 'text-amber-600' },
+  '通訊':   { icon: Smartphone,  bg: 'bg-blue-100',   text: 'text-blue-500' },
+  '娛樂':   { icon: Tv,          bg: 'bg-purple-100', text: 'text-purple-500' },
 };
 
+const expenseCategories: CategoryKey[] = ['餐飲', '交通', '購物', '居住', '通訊', '娛樂'];
+const incomeCategories: CategoryKey[] = ['薪資', '投資收入'];
 const fallbackConfig = { icon: Wallet, bg: 'bg-gray-100', text: 'text-gray-500' };
 
 type Transaction = {
@@ -31,7 +33,7 @@ type Transaction = {
   amount: number; date: string; account: string;
 };
 
-const mockTransactions: Transaction[] = [
+const defaultTransactions: Transaction[] = [
   { id: '1', category: '餐飲',   description: '午餐 - 便當',       amount: -120,   date: '2026-03-21', account: '台銀帳戶' },
   { id: '2', category: '交通',   description: 'YouBike 租借',       amount: -30,    date: '2026-03-21', account: '台銀帳戶' },
   { id: '3', category: '薪資',   description: '3月份薪資',          amount: 55000,  date: '2026-03-20', account: '台銀帳戶' },
@@ -63,17 +65,73 @@ function formatDateLabel(dateStr: string) {
 export default function TransactionsPage() {
   const [txType, setTxType] = useState<TxType>('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions);
+  const [toast, setToast] = useState('');
 
-  const filtered = mockTransactions.filter((tx) => {
+  // Form state
+  const [formType, setFormType] = useState<'expense' | 'income'>('expense');
+  const [formAmount, setFormAmount] = useState('');
+  const [formDesc, setFormDesc] = useState('');
+  const [formCategory, setFormCategory] = useState<CategoryKey>('餐飲');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('nschool-transactions');
+      if (saved) setTransactions(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const filtered = transactions.filter((tx) => {
     if (txType === 'income') return tx.amount > 0;
     if (txType === 'expense') return tx.amount < 0;
     return true;
   });
 
-  const totalIncome = mockTransactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const totalExpense = mockTransactions.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalIncome = transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalExpense = transactions.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
   const balance = totalIncome - totalExpense;
   const grouped = groupByDate(filtered);
+
+  const availableCategories = formType === 'expense' ? expenseCategories : incomeCategories;
+
+  function openModal() {
+    setFormType('expense');
+    setFormAmount('');
+    setFormDesc('');
+    setFormCategory('餐飲');
+    setShowAddModal(true);
+  }
+
+  function handleTypeChange(type: 'expense' | 'income') {
+    setFormType(type);
+    setFormCategory(type === 'expense' ? '餐飲' : '薪資');
+  }
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
+  }
+
+  function handleSave() {
+    const amount = parseFloat(formAmount);
+    if (!amount || amount <= 0) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const newTx: Transaction = {
+      id: Date.now().toString(),
+      category: formCategory,
+      description: formDesc.trim() || formCategory,
+      amount: formType === 'expense' ? -amount : amount,
+      date: today,
+      account: '台銀帳戶',
+    };
+
+    const updated = [newTx, ...transactions];
+    setTransactions(updated);
+    try { localStorage.setItem('nschool-transactions', JSON.stringify(updated)); } catch {}
+    setShowAddModal(false);
+    showToast(`✅ 已新增${formType === 'expense' ? '支出' : '收入'} NT$ ${amount.toLocaleString()}`);
+  }
 
   return (
     <AppLayout>
@@ -89,7 +147,7 @@ export default function TransactionsPage() {
               <Camera className="w-4 h-4" /> OCR 掃描
             </button>
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={openModal}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-medium shadow-md shadow-primary-400/30 hover:shadow-lg transition-all"
             >
               <Plus className="w-4 h-4" /> 新增
@@ -176,14 +234,12 @@ export default function TransactionsPage() {
                 const dayTotal = txs.reduce((s, t) => s + t.amount, 0);
                 return (
                   <div key={date}>
-                    {/* Date Header */}
                     <div className="flex items-center justify-between mb-2 px-1">
                       <span className="text-xs font-bold text-gray-500">{formatDateLabel(date)}</span>
                       <span className={`text-xs font-semibold tabular-nums ${dayTotal >= 0 ? 'text-up' : 'text-gray-400'}`}>
                         {dayTotal >= 0 ? '+' : ''}NT$ {dayTotal.toLocaleString()}
                       </span>
                     </div>
-                    {/* Transactions */}
                     <div className="space-y-0.5">
                       {txs.map((tx) => {
                         const cfg = categoryConfig[tx.category] ?? fallbackConfig;
@@ -218,6 +274,14 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-800 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-medium">
+          <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+          {toast}
+        </div>
+      )}
+
       {/* Add Transaction Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
@@ -233,29 +297,75 @@ export default function TransactionsPage() {
 
             {/* Type toggle */}
             <div className="flex gap-1 bg-gray-50 p-1 rounded-xl mb-4">
-              {['支出', '收入'].map((t) => (
-                <button key={t} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  t === '支出' ? 'bg-down text-white' : 'text-gray-400 hover:text-gray-600'
-                }`}>{t}</button>
-              ))}
+              {(['支出', '收入'] as const).map((t) => {
+                const isActive = (t === '支出' && formType === 'expense') || (t === '收入' && formType === 'income');
+                return (
+                  <button
+                    key={t}
+                    onClick={() => handleTypeChange(t === '支出' ? 'expense' : 'income')}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isActive
+                        ? t === '支出' ? 'bg-down text-white' : 'bg-up text-white'
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="space-y-3">
+            {/* Amount */}
+            <div className="mb-4">
               <input
                 type="number"
-                placeholder="金額"
+                placeholder="輸入金額"
+                value={formAmount}
+                onChange={(e) => setFormAmount(e.target.value)}
                 className="w-full text-2xl font-bold text-center border-b-2 border-gray-100 focus:border-primary-300 outline-none py-3 transition-colors bg-transparent"
-              />
-              <input
-                type="text"
-                placeholder="描述（選填）"
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
               />
             </div>
 
+            {/* Category picker */}
+            <div className="mb-4">
+              <p className="text-xs text-gray-400 font-medium mb-2">分類</p>
+              <div className="grid grid-cols-4 gap-2">
+                {availableCategories.map((cat) => {
+                  const cfg = categoryConfig[cat];
+                  const Icon = cfg.icon;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setFormCategory(cat)}
+                      className={`flex flex-col items-center gap-1 py-2 px-1 rounded-xl border-2 transition-all ${
+                        formCategory === cat
+                          ? 'border-primary-400 bg-primary-50'
+                          : 'border-transparent hover:border-gray-100 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cfg.bg}`}>
+                        <Icon className={`w-4 h-4 ${cfg.text}`} />
+                      </div>
+                      <span className="text-[10px] text-gray-500 font-medium">{cat}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Description */}
+            <input
+              type="text"
+              placeholder="備註（選填）"
+              value={formDesc}
+              onChange={(e) => setFormDesc(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all mb-5"
+            />
+
             <button
-              onClick={() => setShowAddModal(false)}
-              className="mt-5 w-full py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-bold text-sm shadow-md shadow-primary-400/30 active:scale-95 transition-all"
+              onClick={handleSave}
+              disabled={!formAmount || parseFloat(formAmount) <= 0}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-bold text-sm shadow-md shadow-primary-400/30 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               儲存記錄
             </button>

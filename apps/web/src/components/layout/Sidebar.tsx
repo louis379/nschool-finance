@@ -31,7 +31,7 @@ const menuGroups: MenuGroup[] = [
     title: '投資交易',
     items: [
       { href: '/trade',      icon: BarChart3,   label: '模擬交易' },
-      { href: '/trade',      icon: Eye,         label: '觀察名單' },
+      { href: '/watchlist',  icon: Eye,         label: '觀察名單' },
       { href: '/trade',      icon: TrendingUp,  label: '投資組合' },
       { href: '/calculator', icon: Calculator,  label: '複利計算器' },
     ],

@@ -1,19 +1,20 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import {
   User, Settings, Shield, Bell, HelpCircle, LogOut, ChevronRight,
   Star, BookOpen, BarChart3, Receipt, TrendingUp, Award, LucideIcon,
 } from 'lucide-react';
 
-type MenuItem = { icon: LucideIcon; label: string; description: string; href: string; iconBg: string; iconColor: string };
+type MenuItem = { icon: LucideIcon; label: string; description: string; iconBg: string; iconColor: string };
 
 const menuItems: MenuItem[] = [
-  { icon: User,       label: '個人資料', description: '編輯名稱、頭像等基本資料', href: '#', iconBg: 'bg-primary-50', iconColor: 'text-primary-500' },
-  { icon: Shield,     label: '風險偏好', description: '重新評估你的投資風格',     href: '#', iconBg: 'bg-amber-50',   iconColor: 'text-amber-500' },
-  { icon: Bell,       label: '通知設定', description: '管理行情、學習推播通知',   href: '#', iconBg: 'bg-blue-50',   iconColor: 'text-blue-500' },
-  { icon: Settings,   label: '帳戶設定', description: '密碼、連結 Google 帳號',   href: '#', iconBg: 'bg-gray-100',  iconColor: 'text-gray-500' },
-  { icon: HelpCircle, label: '幫助中心', description: '常見問題 & 聯絡客服',       href: '#', iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500' },
+  { icon: User,       label: '個人資料', description: '編輯名稱、頭像等基本資料', iconBg: 'bg-primary-50', iconColor: 'text-primary-500' },
+  { icon: Shield,     label: '風險偏好', description: '重新評估你的投資風格',     iconBg: 'bg-amber-50',   iconColor: 'text-amber-500' },
+  { icon: Settings,   label: '帳戶設定', description: '密碼、連結 Google 帳號',   iconBg: 'bg-gray-100',  iconColor: 'text-gray-500' },
+  { icon: HelpCircle, label: '幫助中心', description: '常見問題 & 聯絡客服',       iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500' },
 ];
 
 const stats = [
@@ -27,7 +28,77 @@ const learningProgress = [
   { label: 'Level 2 投資基礎', percent: 30, color: 'bg-primary-400' },
 ];
 
+type NotificationSettings = {
+  marketAlert: boolean;
+  learnReminder: boolean;
+  newsDigest: boolean;
+  tradeAlert: boolean;
+};
+
+const defaultNotifications: NotificationSettings = {
+  marketAlert: true,
+  learnReminder: true,
+  newsDigest: false,
+  tradeAlert: true,
+};
+
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      onClick={() => onChange(!value)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+        value ? 'bg-primary-500' : 'bg-gray-200'
+      }`}
+      role="switch"
+      aria-checked={value}
+    >
+      <span
+        className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+          value ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  );
+}
+
 export default function ProfilePage() {
+  const router = useRouter();
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationSettings>(defaultNotifications);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('nschool-notifications');
+      if (saved) setNotifications(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  function updateNotification(key: keyof NotificationSettings, value: boolean) {
+    const updated = { ...notifications, [key]: value };
+    setNotifications(updated);
+    try { localStorage.setItem('nschool-notifications', JSON.stringify(updated)); } catch {}
+  }
+
+  function handleMenuClick(label: string) {
+    if (label === '通知設定') {
+      setShowNotifPanel((v) => !v);
+    }
+  }
+
+  function handleLogout() {
+    try {
+      localStorage.removeItem('nschool-balance');
+      localStorage.removeItem('nschool-holdings');
+    } catch {}
+    router.push('/login');
+  }
+
+  const allMenuItems: (MenuItem & { isTogglePanel?: boolean })[] = [
+    ...menuItems.slice(0, 2),
+    { icon: Bell, label: '通知設定', description: '管理行情、學習推播通知', iconBg: 'bg-blue-50', iconColor: 'text-blue-500', isTogglePanel: true },
+    ...menuItems.slice(2),
+  ];
+
   return (
     <AppLayout>
       <div className="max-w-2xl mx-auto space-y-4">
@@ -83,7 +154,7 @@ export default function ProfilePage() {
             return (
               <div key={stat.label} className="bg-white rounded-[var(--radius-card)] p-4 text-center">
                 <div className={`w-9 h-9 rounded-xl ${stat.bgColor} flex items-center justify-center mx-auto mb-2`}>
-                  <Icon className={`w-4.5 h-4.5 ${stat.color}`} />
+                  <Icon className={`w-[18px] h-[18px] ${stat.color}`} />
                 </div>
                 <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{stat.label}</p>
@@ -118,33 +189,67 @@ export default function ProfilePage() {
 
         {/* Settings Menu */}
         <div className="bg-white rounded-[var(--radius-card)] overflow-hidden">
-          {menuItems.map((item, i) => {
+          {allMenuItems.map((item, i) => {
             const Icon = item.icon;
+            const isNotif = item.label === '通知設定';
             return (
-              <a
-                key={item.label}
-                href={item.href}
-                className={`flex items-center justify-between px-5 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors ${
-                  i < menuItems.length - 1 ? 'border-b border-gray-50' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className={`w-9 h-9 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}>
-                    <Icon className={`w-4.5 h-4.5 ${item.iconColor}`} />
+              <div key={item.label}>
+                <button
+                  onClick={() => handleMenuClick(item.label)}
+                  className={`w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left ${
+                    i < allMenuItems.length - 1 ? 'border-b border-gray-50' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className={`w-9 h-9 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}>
+                      <Icon className={`w-[18px] h-[18px] ${item.iconColor}`} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700">{item.label}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700">{item.label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>
+                  {isNotif ? (
+                    <ChevronRight className={`w-4 h-4 text-gray-300 shrink-0 transition-transform ${showNotifPanel ? 'rotate-90' : ''}`} />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                  )}
+                </button>
+
+                {/* Notification panel (expanded inline) */}
+                {isNotif && showNotifPanel && (
+                  <div className="px-5 pb-4 bg-gray-50/50 border-b border-gray-50">
+                    <div className="space-y-3 pt-2">
+                      {[
+                        { key: 'marketAlert' as const, label: '行情提醒', desc: '重要股價變動通知' },
+                        { key: 'learnReminder' as const, label: '學習提醒', desc: '每日學習進度提醒' },
+                        { key: 'tradeAlert' as const, label: '交易提醒', desc: '模擬交易結果通知' },
+                        { key: 'newsDigest' as const, label: '新聞摘要', desc: '每日財經新聞整理' },
+                      ].map(({ key, label, desc }) => (
+                        <div key={key} className="flex items-center justify-between py-1">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">{label}</p>
+                            <p className="text-xs text-gray-400">{desc}</p>
+                          </div>
+                          <Toggle
+                            value={notifications[key]}
+                            onChange={(v) => updateNotification(key, v)}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
-              </a>
+                )}
+              </div>
             );
           })}
         </div>
 
         {/* Logout */}
-        <button className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[var(--radius-card)] bg-white text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors font-medium text-sm border border-red-100">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[var(--radius-card)] bg-white text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors font-medium text-sm border border-red-100"
+        >
           <LogOut className="w-4 h-4" />
           登出帳號
         </button>
