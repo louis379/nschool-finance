@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import {
   Plus, Camera, Filter, Calendar,
   ArrowDownLeft, ArrowUpRight, Wallet,
   Utensils, Car, Banknote, ShoppingBag, TrendingUp,
-  Home, Smartphone, Tv, X, LucideIcon, CheckCircle,
+  Home, Smartphone, Tv, X, LucideIcon, CheckCircle, Trash2,
 } from 'lucide-react';
 
 type TxType = 'all' | 'income' | 'expense';
@@ -62,23 +62,41 @@ function formatDateLabel(dateStr: string) {
   return new Intl.DateTimeFormat('zh-TW', { month: 'long', day: 'numeric' }).format(d);
 }
 
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
 export default function TransactionsPage() {
   const [txType, setTxType] = useState<TxType>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions);
   const [toast, setToast] = useState('');
+  const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
+  const [undoTx, setUndoTx] = useState<{ tx: Transaction; list: Transaction[] } | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Form state
   const [formType, setFormType] = useState<'expense' | 'income'>('expense');
   const [formAmount, setFormAmount] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formCategory, setFormCategory] = useState<CategoryKey>('餐飲');
+  const [formDate, setFormDate] = useState(todayStr());
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('nschool-transactions');
       if (saved) setTransactions(JSON.parse(saved));
     } catch {}
+  }, []);
+
+  // Deselect on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-tx-row]')) setSelectedTxId(null);
+    }
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
   }, []);
 
   const filtered = transactions.filter((tx) => {
@@ -95,10 +113,18 @@ export default function TransactionsPage() {
   const availableCategories = formType === 'expense' ? expenseCategories : incomeCategories;
 
   function openModal() {
+    // Restore last used category
+    let lastCat: CategoryKey = '餐飲';
+    try {
+      const saved = localStorage.getItem('nschool-lastCategory');
+      if (saved && categoryConfig[saved as CategoryKey]) lastCat = saved as CategoryKey;
+    } catch {}
+
     setFormType('expense');
     setFormAmount('');
     setFormDesc('');
-    setFormCategory('餐飲');
+    setFormCategory(expenseCategories.includes(lastCat) ? lastCat : '餐飲');
+    setFormDate(todayStr());
     setShowAddModal(true);
   }
 
@@ -109,28 +135,65 @@ export default function TransactionsPage() {
 
   function showToast(msg: string) {
     setToast(msg);
-    setTimeout(() => setToast(''), 2500);
+    setTimeout(() => setToast(''), 3000);
+  }
+
+  function persist(list: Transaction[]) {
+    try { localStorage.setItem('nschool-transactions', JSON.stringify(list)); } catch {}
   }
 
   function handleSave() {
     const amount = parseFloat(formAmount);
     if (!amount || amount <= 0) return;
 
-    const today = new Date().toISOString().split('T')[0];
     const newTx: Transaction = {
       id: Date.now().toString(),
       category: formCategory,
       description: formDesc.trim() || formCategory,
       amount: formType === 'expense' ? -amount : amount,
-      date: today,
+      date: formDate,
       account: '台銀帳戶',
     };
 
-    const updated = [newTx, ...transactions];
+    const updated = [newTx, ...transactions].sort((a, b) => b.date.localeCompare(a.date));
     setTransactions(updated);
-    try { localStorage.setItem('nschool-transactions', JSON.stringify(updated)); } catch {}
+    persist(updated);
+
+    // Remember last category
+    try { localStorage.setItem('nschool-lastCategory', formCategory); } catch {}
+
     setShowAddModal(false);
     showToast(`✅ 已新增${formType === 'expense' ? '支出' : '收入'} NT$ ${amount.toLocaleString()}`);
+  }
+
+  function handleDelete(txId: string) {
+    const tx = transactions.find((t) => t.id === txId);
+    if (!tx) return;
+
+    const prev = transactions;
+    const updated = transactions.filter((t) => t.id !== txId);
+    setTransactions(updated);
+    persist(updated);
+    setSelectedTxId(null);
+
+    // Undo state
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoTx({ tx, list: prev });
+    setToast(`🗑 已刪除「${tx.description}」`);
+
+    undoTimerRef.current = setTimeout(() => {
+      setUndoTx(null);
+      setToast('');
+    }, 3500);
+  }
+
+  function handleUndo() {
+    if (!undoTx) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setTransactions(undoTx.list);
+    persist(undoTx.list);
+    setUndoTx(null);
+    setToast('');
   }
 
   return (
@@ -245,23 +308,46 @@ export default function TransactionsPage() {
                         const cfg = categoryConfig[tx.category] ?? fallbackConfig;
                         const Icon = cfg.icon;
                         const isIncome = tx.amount >= 0;
+                        const isSelected = selectedTxId === tx.id;
                         return (
                           <div
                             key={tx.id}
-                            className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                            data-tx-row
+                            className="relative overflow-hidden rounded-xl"
                           >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${cfg.bg}`}>
-                                <Icon className={`w-4 h-4 ${cfg.text}`} />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-700 leading-snug">{tx.description}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">{tx.category} · {tx.account}</p>
-                              </div>
+                            {/* Delete reveal layer */}
+                            <div
+                              className={`absolute inset-y-0 right-0 flex items-center justify-end pr-3 transition-all duration-200 ${
+                                isSelected ? 'w-16 opacity-100' : 'w-0 opacity-0'
+                              }`}
+                            >
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDelete(tx.id); }}
+                                className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center shadow-md active:scale-90 transition-transform"
+                              >
+                                <Trash2 className="w-4 h-4 text-white" />
+                              </button>
                             </div>
-                            <span className={`text-sm font-bold tabular-nums shrink-0 ml-2 ${isIncome ? 'text-up' : 'text-gray-700'}`}>
-                              {isIncome ? '+' : '-'}NT$ {Math.abs(tx.amount).toLocaleString()}
-                            </span>
+
+                            {/* Row content */}
+                            <div
+                              onClick={() => setSelectedTxId(isSelected ? null : tx.id)}
+                              style={{ transform: isSelected ? 'translateX(-52px)' : 'translateX(0)' }}
+                              className="flex items-center justify-between py-2.5 px-2 -mx-2 mx-0 hover:bg-gray-50 transition-all duration-200 cursor-pointer"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${cfg.bg}`}>
+                                  <Icon className={`w-4 h-4 ${cfg.text}`} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-700 leading-snug">{tx.description}</p>
+                                  <p className="text-xs text-gray-400 mt-0.5">{tx.category} · {tx.account}</p>
+                                </div>
+                              </div>
+                              <span className={`text-sm font-bold tabular-nums shrink-0 ml-2 ${isIncome ? 'text-up' : 'text-gray-700'}`}>
+                                {isIncome ? '+' : '-'}NT$ {Math.abs(tx.amount).toLocaleString()}
+                              </span>
+                            </div>
                           </div>
                         );
                       })}
@@ -274,11 +360,19 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Toast */}
+      {/* Toast with undo */}
       {toast && (
-        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-800 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-medium">
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-800 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-medium animate-in slide-in-from-bottom-2 duration-200">
           <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-          {toast}
+          <span>{toast}</span>
+          {undoTx && (
+            <button
+              onClick={handleUndo}
+              className="ml-1 text-primary-300 hover:text-primary-200 font-bold underline underline-offset-2"
+            >
+              復原
+            </button>
+          )}
         </div>
       )}
 
@@ -322,6 +416,7 @@ export default function TransactionsPage() {
                 placeholder="輸入金額"
                 value={formAmount}
                 onChange={(e) => setFormAmount(e.target.value)}
+                autoFocus
                 className="w-full text-2xl font-bold text-center border-b-2 border-gray-100 focus:border-primary-300 outline-none py-3 transition-colors bg-transparent"
               />
             </div>
@@ -359,8 +454,19 @@ export default function TransactionsPage() {
               placeholder="備註（選填）"
               value={formDesc}
               onChange={(e) => setFormDesc(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all mb-5"
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all mb-3"
             />
+
+            {/* Date picker */}
+            <div className="mb-5">
+              <input
+                type="date"
+                value={formDate}
+                max={todayStr()}
+                onChange={(e) => setFormDate(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+              />
+            </div>
 
             <button
               onClick={handleSave}
