@@ -2,6 +2,18 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // If an auth code arrives at a non-callback path, redirect to the callback handler
+  const code = request.nextUrl.searchParams.get('code');
+  if (code && path !== '/api/auth/callback') {
+    const callbackUrl = new URL('/api/auth/callback', request.url);
+    callbackUrl.searchParams.set('code', code);
+    const next = request.nextUrl.searchParams.get('next');
+    if (next) callbackUrl.searchParams.set('next', next);
+    return NextResponse.redirect(callbackUrl);
+  }
+
   const response = NextResponse.next({
     request: { headers: request.headers },
   });
@@ -29,7 +41,6 @@ export async function middleware(request: NextRequest) {
 
   // Protected routes — redirect to login if not authenticated
   const protectedPaths = ['/profile', '/trade', '/watchlist'];
-  const path = request.nextUrl.pathname;
   const isProtected = protectedPaths.some((p) => path.startsWith(p));
 
   if (isProtected && !user) {
