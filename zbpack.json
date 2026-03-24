@@ -1,7 +1,4 @@
 {
-  "node": {
-    "entry": "apps/web/server.js"
-  },
   "build_command": "pnpm turbo build --filter=@nschool/web",
   "start_command": "cd apps/web && npx next start -p $PORT"
 }
