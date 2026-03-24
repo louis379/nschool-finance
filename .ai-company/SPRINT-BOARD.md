@@ -17,11 +17,14 @@
 
 | # | 任務 | 負責部門 | 優先級 | 備註 |
 |---|------|---------|--------|------|
+| S12-011 | AI 智能分類引擎（記帳自動分類） | engineering + product | P1 | 🆕 支撐記帳簡化的核心引擎，基於歷史資料 + 關鍵字匹配 |
 | S12-004 | 模擬交易 UI 改善 — 報價卡片化 | design + engineering | P1 | 即時行情已完成，需改善呈現方式 |
 | S12-005 | 新手引導流程（Onboarding） | product + design | P1 | 第一次使用的用戶不知道從哪開始 |
+| S12-012 | 遊戲化成就系統 — 連續記帳 Streak | product + engineering | P2 | 🆕 提升留存率，研究顯示遊戲化可提升互動 45% |
 | S12-006 | 學習模組內容擴充 | product | P2 | 目前只有基礎課程 |
 | S12-007 | PWA 離線支援 | engineering | P2 | 讓用戶在沒網路時仍可記帳 |
 | S12-008 | 效能優化 — 首頁載入速度 | engineering | P2 | 目前 LCP > 2.5s |
+| S12-013 | 月度財務報告 MVP | product + engineering | P2 | 🆕 自動產生消費趨勢分析與 AI 摘要 |
 | S12-009 | 錯誤監控整合（Sentry） | operations | P3 | 目前錯誤追蹤不完整 |
 | S12-010 | A/B 測試框架建立 | growth + engineering | P3 | 為後續優化做準備 |
 

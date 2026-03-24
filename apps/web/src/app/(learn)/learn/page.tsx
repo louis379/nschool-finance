@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import {
   Lock, CheckCircle2, PlayCircle, Trophy, Star,
@@ -77,11 +77,34 @@ const defaultProgress: LessonProgressMap = {
 export default function LearnPage() {
   const [expandedModule, setExpandedModule] = useState<string | null>('2');
   const [lessonProgress, setLessonProgress] = useState<LessonProgressMap>(defaultProgress);
+  // Streak tracking (Duolingo pattern)
+  const [streak, setStreak] = useState(0);
+  // Micro-animation: track which lesson was just completed
+  const [justCompletedKey, setJustCompletedKey] = useState<string | null>(null);
+  // Refs for scrolling to modules (one-tap banner CTA)
+  const moduleRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('nschool-lesson-progress');
       if (saved) setLessonProgress(JSON.parse(saved));
+    } catch {}
+
+    // Streak calculation (Duolingo pattern)
+    try {
+      const today = new Date().toDateString();
+      const lastDate = localStorage.getItem('nschool-streak-date');
+      const currentStreak = parseInt(localStorage.getItem('nschool-streak-count') ?? '0', 10);
+
+      if (lastDate === today) {
+        setStreak(currentStreak);
+      } else {
+        const yesterday = new Date(Date.now() - 86_400_000).toDateString();
+        const newStreak = lastDate === yesterday ? currentStreak + 1 : 1;
+        setStreak(newStreak);
+        localStorage.setItem('nschool-streak-date', today);
+        localStorage.setItem('nschool-streak-count', String(newStreak));
+      }
     } catch {}
   }, []);
 
@@ -93,16 +116,31 @@ export default function LearnPage() {
     return (lessonProgress[moduleId] ?? []).includes(idx);
   }
 
-  function toggleLesson(moduleId: string, idx: number) {
+  const toggleLesson = useCallback((moduleId: string, idx: number) => {
     setLessonProgress((prev) => {
       const current = prev[moduleId] ?? [];
-      const updated = current.includes(idx)
-        ? current.filter((i) => i !== idx)
-        : [...current, idx];
+      const wasDone = current.includes(idx);
+      const updated = wasDone ? current.filter((i) => i !== idx) : [...current, idx];
+
+      // Trigger micro-animation only when marking as done (Duolingo feedback)
+      if (!wasDone) {
+        const key = `${moduleId}-${idx}`;
+        setJustCompletedKey(key);
+        setTimeout(() => setJustCompletedKey(null), 550);
+      }
+
       const next = { ...prev, [moduleId]: updated };
       try { localStorage.setItem('nschool-lesson-progress', JSON.stringify(next)); } catch {}
       return next;
     });
+  }, []);
+
+  // One-tap banner CTA: expand active module and scroll to it (Khan Academy pattern)
+  function jumpToActiveModule(moduleId: string) {
+    setExpandedModule(moduleId);
+    setTimeout(() => {
+      moduleRefs.current[moduleId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
   }
 
   const totalLessons = learningModules.reduce((s, m) => s + m.lessons, 0);
@@ -116,6 +154,17 @@ export default function LearnPage() {
 
   return (
     <AppLayout>
+      {/* Checkmark bounce animation */}
+      <style>{`
+        @keyframes lessonCheck {
+          0%   { transform: scale(1); }
+          40%  { transform: scale(1.45); }
+          70%  { transform: scale(0.9); }
+          100% { transform: scale(1); }
+        }
+        .lesson-check-animate { animation: lessonCheck 0.5s ease-out; }
+      `}</style>
+
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800">學習路徑</h1>
@@ -125,7 +174,7 @@ export default function LearnPage() {
         {/* Progress Banner */}
         <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-[var(--radius-card)] p-6 text-white mb-6 shadow-lg shadow-primary-500/20">
           <div className="flex items-start justify-between mb-4 gap-4">
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-primary-200 text-xs font-medium mb-1">目前進度</p>
               <p className="text-xl font-bold">
                 {activeModule ? `Level ${activeModule.level} — ${activeModule.title}` : '全部完成 🎉'}
@@ -135,10 +184,28 @@ export default function LearnPage() {
                   下一課：{lessonNames[activeModule.id]?.[getCompleted(activeModule.id)] ?? '開始課程'}
                 </p>
               )}
+              {/* One-tap CTA to jump to active module (Khan Academy pattern) */}
+              {activeModule && (
+                <button
+                  onClick={() => jumpToActiveModule(activeModule.id)}
+                  className="mt-3 bg-white text-primary-700 hover:bg-primary-50 active:scale-95 transition-all duration-150 px-4 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 w-fit shadow-sm"
+                >
+                  繼續學習 →
+                </button>
+              )}
             </div>
-            <div className="flex items-center gap-1.5 bg-white/15 px-3 py-2 rounded-xl shrink-0">
-              <Star className="w-4 h-4 text-amber-300 fill-amber-300" />
-              <span className="text-sm font-bold">{totalPoints} 積分</span>
+
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              {/* Points badge */}
+              <div className="flex items-center gap-1.5 bg-white/15 px-3 py-2 rounded-xl">
+                <Star className="w-4 h-4 text-amber-300 fill-amber-300" />
+                <span className="text-sm font-bold">{totalPoints} 積分</span>
+              </div>
+              {/* Streak badge (Duolingo pattern) */}
+              <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl ${streak > 0 ? 'bg-orange-500/80' : 'bg-white/10'}`}>
+                <span className="text-base leading-none">🔥</span>
+                <span className="text-sm font-bold">{streak} 天</span>
+              </div>
             </div>
           </div>
 
@@ -171,6 +238,7 @@ export default function LearnPage() {
               return (
                 <div
                   key={module.id}
+                  ref={(el) => { moduleRefs.current[module.id] = el; }}
                   className={`bg-white rounded-[var(--radius-card)] border-2 transition-all ${
                     !module.unlocked
                       ? 'border-gray-100 opacity-55'
@@ -214,7 +282,7 @@ export default function LearnPage() {
                         <div className="flex items-center gap-3 mt-3">
                           <div className="flex-1 bg-gray-100 rounded-full h-1.5">
                             <div
-                              className={`rounded-full h-1.5 transition-all ${
+                              className={`rounded-full h-1.5 transition-all duration-500 ${
                                 isComplete ? 'bg-up' : 'bg-primary-500'
                               }`}
                               style={{ width: `${progress}%` }}
@@ -261,6 +329,9 @@ export default function LearnPage() {
                       <div className="space-y-1">
                         {lessons.map((name, idx) => {
                           const done = isLessonDone(module.id, idx);
+                          const animKey = `${module.id}-${idx}`;
+                          const isJustCompleted = justCompletedKey === animKey;
+
                           return (
                             <button
                               key={idx}
@@ -271,11 +342,12 @@ export default function LearnPage() {
                                   : 'hover:bg-gray-50'
                               }`}
                             >
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
-                                done
-                                  ? 'bg-up border-up'
-                                  : 'border-gray-200 bg-white'
-                              }`}>
+                              {/* Checkmark with micro-animation (Duolingo pattern) */}
+                              <div
+                                className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors duration-200 ${
+                                  done ? 'bg-up border-up' : 'border-gray-200 bg-white'
+                                } ${isJustCompleted ? 'lesson-check-animate' : ''}`}
+                              >
                                 {done && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                               </div>
                               <span className={`text-sm transition-colors ${
@@ -283,6 +355,12 @@ export default function LearnPage() {
                               }`}>
                                 {idx + 1}. {name}
                               </span>
+                              {/* "剛完成" flash label */}
+                              {isJustCompleted && (
+                                <span className="ml-auto text-[10px] font-bold text-up bg-up/10 px-2 py-0.5 rounded-full animate-fade-in">
+                                  +完成!
+                                </span>
+                              )}
                             </button>
                           );
                         })}
@@ -331,6 +409,15 @@ export default function LearnPage() {
                 </div>
               ))}
             </div>
+
+            {/* Streak encouragement card */}
+            {streak > 0 && (
+              <div className="mt-4 bg-gradient-to-br from-orange-50 to-amber-50 border-2 border-orange-200/60 rounded-[var(--radius-card)] p-4 text-center">
+                <p className="text-2xl mb-1">🔥</p>
+                <p className="text-sm font-bold text-orange-700">{streak} 天連續學習!</p>
+                <p className="text-xs text-orange-500 mt-0.5">保持下去，養成好習慣</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
