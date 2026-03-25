@@ -7,7 +7,7 @@ import {
   ArrowDownLeft, ArrowUpRight, Wallet,
   Utensils, Car, Banknote, ShoppingBag, TrendingUp,
   Home, Smartphone, Tv, X, LucideIcon, CheckCircle, Trash2,
-  Upload, Loader2,
+  Upload, Loader2, ChevronDown,
 } from 'lucide-react';
 
 type TxType = 'all' | 'income' | 'expense';
@@ -509,119 +509,135 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* Add Transaction Modal */}
+      {/* Quick-Add Bottom Sheet — 3 steps: ① amount ② category ③ save */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop" onClick={() => setShowAddModal(false)} />
-          <div className="relative bg-white rounded-b-3xl md:rounded-2xl w-full max-w-sm p-6 pt-[max(1.5rem,env(safe-area-inset-top))] shadow-2xl modal-content">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-gray-800">新增記錄</h3>
-              <button onClick={() => setShowAddModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-                <X className="w-5 h-5 text-gray-400" />
+          <div className="relative bg-white rounded-t-3xl md:rounded-2xl w-full max-w-md shadow-2xl modal-content pb-[env(safe-area-inset-bottom,16px)]">
+            {/* Drag handle (mobile) */}
+            <div className="flex justify-center pt-3 pb-1 md:hidden">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
+
+            <div className="px-5 pt-3 pb-5">
+              {/* Header with type toggle inline */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex gap-1 bg-gray-50 p-0.5 rounded-xl">
+                  {(['支出', '收入'] as const).map((t) => {
+                    const isActive = (t === '支出' && formType === 'expense') || (t === '收入' && formType === 'income');
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => handleTypeChange(t === '支出' ? 'expense' : 'income')}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                          isActive
+                            ? t === '支出' ? 'bg-down text-white shadow-sm' : 'bg-up text-white shadow-sm'
+                            : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={() => setShowAddModal(false)} className="p-2 -mr-2 rounded-xl hover:bg-gray-100 transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              {/* Step 1: Amount — big, prominent */}
+              <div className="mb-5">
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className={`text-lg font-bold ${formType === 'expense' ? 'text-down' : 'text-up'}`}>NT$</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={formAmount}
+                    onChange={(e) => setFormAmount(e.target.value)}
+                    autoFocus
+                    className="text-4xl font-extrabold text-center outline-none bg-transparent w-full max-w-[200px] tabular-nums placeholder:text-gray-200"
+                  />
+                </div>
+              </div>
+
+              {/* Step 2: Category — tap to select */}
+              <div className="mb-4">
+                <div className="flex flex-wrap justify-center gap-2">
+                  {availableCategories.map((cat) => {
+                    const cfg = categoryConfig[cat];
+                    const Icon = cfg.icon;
+                    const isSelected = formCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setFormCategory(cat)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                          isSelected
+                            ? 'bg-primary-500 text-white shadow-md shadow-primary-400/30 scale-105'
+                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100 active:scale-95'
+                        }`}
+                      >
+                        <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : cfg.text}`} />
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Optional: Expandable details (description, date, account) */}
+              <details className="mb-4 group">
+                <summary className="flex items-center justify-center gap-1 text-xs text-gray-400 cursor-pointer hover:text-gray-500 transition-colors py-1 select-none">
+                  <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+                  更多選項
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <input
+                    type="text"
+                    placeholder="備註（選填）"
+                    value={formDesc}
+                    onChange={(e) => setFormDesc(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-gray-400 font-medium mb-1">日期</p>
+                      <input
+                        type="date"
+                        value={formDate}
+                        max={todayStr()}
+                        onChange={(e) => setFormDate(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 font-medium mb-1">帳戶</p>
+                      <select
+                        value={formAccount}
+                        onChange={(e) => setFormAccount(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all appearance-none"
+                      >
+                        {accountList.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              {/* Step 3: Save */}
+              <button
+                onClick={handleSave}
+                disabled={!formAmount || parseFloat(formAmount) <= 0}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-bold text-sm shadow-lg shadow-primary-400/30 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {formAmount && parseFloat(formAmount) > 0
+                  ? `儲存 ${formType === 'expense' ? '支出' : '收入'} NT$ ${parseFloat(formAmount).toLocaleString()}`
+                  : '輸入金額以儲存'}
               </button>
             </div>
-
-            {/* Type toggle */}
-            <div className="flex gap-1 bg-gray-50 p-1 rounded-xl mb-4">
-              {(['支出', '收入'] as const).map((t) => {
-                const isActive = (t === '支出' && formType === 'expense') || (t === '收入' && formType === 'income');
-                return (
-                  <button
-                    key={t}
-                    onClick={() => handleTypeChange(t === '支出' ? 'expense' : 'income')}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                      isActive
-                        ? t === '支出' ? 'bg-down text-white' : 'bg-up text-white'
-                        : 'text-gray-400 hover:text-gray-600'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Amount */}
-            <div className="mb-4">
-              <input
-                type="number"
-                placeholder="輸入金額"
-                value={formAmount}
-                onChange={(e) => setFormAmount(e.target.value)}
-                autoFocus
-                className="w-full text-2xl font-bold text-center border-b-2 border-gray-100 focus:border-primary-300 outline-none py-3 transition-colors bg-transparent"
-              />
-            </div>
-
-            {/* Category picker */}
-            <div className="mb-4">
-              <p className="text-xs text-gray-400 font-medium mb-2">分類</p>
-              <div className="grid grid-cols-4 gap-2">
-                {availableCategories.map((cat) => {
-                  const cfg = categoryConfig[cat];
-                  const Icon = cfg.icon;
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => setFormCategory(cat)}
-                      className={`flex flex-col items-center gap-1 py-2 px-1 rounded-xl border-2 transition-all ${
-                        formCategory === cat
-                          ? 'border-primary-400 bg-primary-50'
-                          : 'border-transparent hover:border-gray-100 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cfg.bg}`}>
-                        <Icon className={`w-4 h-4 ${cfg.text}`} />
-                      </div>
-                      <span className="text-[10px] text-gray-500 font-medium">{cat}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Description */}
-            <input
-              type="text"
-              placeholder="備註（選填）"
-              value={formDesc}
-              onChange={(e) => setFormDesc(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all mb-3"
-            />
-
-            {/* Date picker + Account selector */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div>
-                <p className="text-xs text-gray-400 font-medium mb-1.5">日期</p>
-                <input
-                  type="date"
-                  value={formDate}
-                  max={todayStr()}
-                  onChange={(e) => setFormDate(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all"
-                />
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium mb-1.5">帳戶</p>
-                <select
-                  value={formAccount}
-                  onChange={(e) => setFormAccount(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all appearance-none"
-                >
-                  {accountList.map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <button
-              onClick={handleSave}
-              disabled={!formAmount || parseFloat(formAmount) <= 0}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-bold text-sm shadow-md shadow-primary-400/30 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              儲存記錄
-            </button>
           </div>
         </div>
       )}

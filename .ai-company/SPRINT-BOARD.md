@@ -10,7 +10,7 @@
 | # | 任務 | 負責部門 | 優先級 | 狀態 |
 |---|------|---------|--------|------|
 | S12-001 | 建立 AI 公司管理架構 | operations | P0 | ✅ 完成 |
-| S12-002 | 記帳流程簡化（3 步驟內完成） | product + engineering | P0 | 待開始 |
+| S12-002 | 記帳流程簡化（3 步驟內完成） | product + engineering | P0 | ✅ 完成 |
 | S12-003 | 手機端 Bottom Navigation 優化 | design + engineering | P1 | 待開始 |
 
 ## 🟡 待辦（To Do）
