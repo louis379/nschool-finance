@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
+import { createClient } from '@/lib/supabase/client';
 import {
   User, Settings, Shield, Bell, HelpCircle, LogOut,
   Star, BookOpen, BarChart3, Receipt, TrendingUp, Award, LucideIcon,
@@ -100,13 +102,28 @@ function usePortfolioStats() {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<ProfileData>(defaultProfile);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [editName, setEditName] = useState('');
   const [toast, setToast] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const stats = useStats();
   const portfolio = usePortfolioStats();
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // ignore errors, still redirect
+    } finally {
+      router.push('/login');
+      router.refresh();
+    }
+  }
 
   useEffect(() => {
     const loaded = loadProfile();
@@ -407,8 +424,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Logout */}
-        <button className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[var(--radius-card)] bg-white text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors font-medium text-sm border border-red-100">
-          <LogOut className="w-4 h-4" /> 登出帳號
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[var(--radius-card)] bg-white text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors font-medium text-sm border border-red-100 disabled:opacity-50"
+        >
+          <LogOut className="w-4 h-4" /> {loggingOut ? '登出中...' : '登出帳號'}
         </button>
 
         <p className="text-center text-xs text-gray-300 pb-2">nSchool Finance v0.1.0</p>
