@@ -1,12 +1,15 @@
 'use client';
 
 import { Bell, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 type HeaderProps = {
   onSidebarToggle?: () => void;
 };
 
 export default function Header({ onSidebarToggle: _onSidebarToggle }: HeaderProps) {
+  const router = useRouter();
+
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-gray-100 shadow-sm">
       <div className="flex items-center justify-between h-14 px-4 md:px-6 gap-3">
@@ -36,9 +39,13 @@ export default function Header({ onSidebarToggle: _onSidebarToggle }: HeaderProp
             <Bell className="w-5 h-5 text-gray-500" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
           </button>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center cursor-pointer shadow-sm">
+          <button
+            onClick={() => router.push('/profile')}
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center cursor-pointer shadow-sm hover:opacity-90 transition-opacity"
+            aria-label="個人頁面"
+          >
             <span className="text-white text-sm font-semibold">U</span>
-          </div>
+          </button>
         </div>
       </div>
     </header>
