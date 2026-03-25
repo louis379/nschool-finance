@@ -62,9 +62,12 @@
 |------|-----|----------|
 | **頁面背景** | `#F4F2FF` | 自訂（淡紫色調） |
 | 卡片 | `#FFFFFF` | `bg-white` |
-| 邊框 | `#E5E7EB` | `border-gray-200` |
+| 邊框（卡片外框） | `#E5E7EB` | `border-gray-200` |
+| 邊框（輸入框） | `#F3F4F6` | `border-gray-100` |
 | 次要文字 | `#6B7280` | `text-gray-500` |
-| 主要文字 | `#111827` | `text-gray-900` |
+| 輔助文字 | `#9CA3AF` | `text-gray-400` |
+| 主要文字 | `#1F2937` | `text-gray-800` |
+| 強調文字 | `#111827` | `text-gray-900` |
 
 > 注意：頁面背景不是灰色而是淡紫色 `#F4F2FF`，與品牌紫系統一致。
 
@@ -108,6 +111,7 @@
 ### 間距規範
 
 - 儀表板卡片內部間距：`p-5`（20px）— 白底卡片標準
+- 緊湊型卡片（如摘要格）：`p-4`（16px）— 用於 3 欄 grid 等空間受限場景
 - 特殊卡片（漸層底）：`p-6`（24px）— 如總資產卡
 - 元件之間間距：`gap-4` 或 `space-y-4`
 - 頁面邊距：`px-4`（手機）/ `px-6`（平板）/ `px-8`（桌面）
@@ -156,19 +160,52 @@
 ### 輸入框
 
 ```html
-<input class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors" />
+<!-- 標準輸入框（帶背景） -->
+<input class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all" />
+
+<!-- 透明輸入框（用於重點數值輸入，如金額） -->
+<input class="text-4xl font-extrabold text-center outline-none bg-transparent tabular-nums placeholder:text-gray-200" />
 ```
+
+> **注意**：所有輸入框統一使用 `bg-gray-50 border-gray-100` 淺灰底 + `focus:ring-primary-300` 聚焦環。
 
 ### 模態框（Modal）
 
+App 內有兩種 Modal 形態，依場景選擇：
+
 ```html
-<!-- 手機版：從頂部滑入 -->
-<div class="modal-content rounded-b-3xl md:rounded-2xl max-w-sm">
+<!-- A. 頂部滑入（Top Sheet）— 用於一般表單（帳戶新增、設定等） -->
+<div class="modal-content rounded-b-3xl md:rounded-2xl max-w-sm p-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
   <!-- 內容 -->
 </div>
 
-<!-- 桌面版：置中縮放 -->
-<!-- 自動透過 @media (min-width: 768px) 切換為 scaleIn 動畫 -->
+<!-- B. 底部滑入（Bottom Sheet）— 用於快速操作（記帳、確認等） -->
+<div class="modal-content rounded-t-3xl md:rounded-2xl max-w-md pb-[env(safe-area-inset-bottom,16px)]">
+  <!-- 手機拖曳把手 -->
+  <div class="flex justify-center pt-3 pb-1 md:hidden">
+    <div class="w-10 h-1 rounded-full bg-gray-200" />
+  </div>
+  <!-- 內容 -->
+</div>
+
+<!-- 共用背景遮罩 -->
+<div class="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop" />
+```
+
+> **選擇指南**：高頻且需快速完成的操作用 Bottom Sheet（如記帳），一般表單用 Top Sheet。
+> 桌面版自動透過 `@media (min-width: 768px)` 切換為 `scaleIn` 置中動畫。
+
+### 分類選擇器（Pill Selector）
+
+用於單選分類場景（如記帳分類），採用 pill 標籤風格，適合單手操作：
+
+```html
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all
+  {selected ? 'bg-primary-500 text-white shadow-md shadow-primary-400/30 scale-105'
+            : 'bg-gray-50 text-gray-600 hover:bg-gray-100 active:scale-95'}">
+  <Icon class="w-3.5 h-3.5" />
+  分類名稱
+</button>
 ```
 
 ### 快速操作圖標
@@ -223,12 +260,16 @@
 
 根據最新 FinTech UI 設計趨勢，以下方向可持續優化：
 
-- **AI 個人化儀表板**：根據用戶行為動態調整卡片排序和內容
+- **AI 個人化儀表板**：根據用戶行為動態調整卡片排序和內容（65% 用戶期待 AI 財務建議）
 - **微互動強化信任**：金錢流動時加入安撫性動畫（已實作 card-hover、fadeInUp）
 - **數據視覺化**：82% 用戶因視覺化數據更信任 FinTech App（已實作圓環圖、比例條）
 - **漸層 + 柔和陰影**：現代 FinTech 趨勢，取代硬邊框（已採用）
 - **即時回饋**：交易和行情需要即時狀態指示器（已實作 up/down 色系）
+- **簡化操作流程**：Progressive disclosure 模式，核心路徑 ≤ 3 步完成（已實作記帳 Bottom Sheet）
+- **跨裝置一致性**：用戶頻繁切換裝置，響應式設計需保持體驗連貫（已實作 Mobile First + md 斷點切換）
+- **被動安全設計**：超越登入生物辨識，融入行為式安全偵測（規劃中）
+- **遊戲化元素**：學習進度、連續記帳 streak、成就系統提升用戶黏性（部分實作：學習 streak）
 
 ---
 
-*最後更新：2026-03-25*
+*最後更新：2026-03-26*

@@ -11,22 +11,24 @@
 |---|------|---------|--------|------|
 | S12-001 | 建立 AI 公司管理架構 | operations | P0 | ✅ 完成 |
 | S12-002 | 記帳流程簡化（3 步驟內完成） | product + engineering | P0 | ✅ 完成 |
-| S12-003 | 手機端 Bottom Navigation 優化 | design + engineering | P1 | 待開始 |
+| S12-003 | 手機端 Bottom Navigation 優化 | design + engineering | P1 | 🔧 進行中 |
+| S12-011 | AI 智能分類引擎（記帳自動分類） | engineering + product | P1 | 🔧 進行中 |
+| S12-004 | 模擬交易 UI 改善 — 報價卡片化 | design + engineering | P1 | ✅ 完成（手機版改 2-col grid 卡片，漸層背景＋買賣按鈕優化） |
+| S12-005 | 新手引導流程（Onboarding） | product + design | P1 | 🔧 進行中（Sprint Day 5，推進 P1） |
 
 ## 🟡 待辦（To Do）
 
 | # | 任務 | 負責部門 | 優先級 | 備註 |
 |---|------|---------|--------|------|
-| S12-011 | AI 智能分類引擎（記帳自動分類） | engineering + product | P1 | 🆕 支撐記帳簡化的核心引擎，基於歷史資料 + 關鍵字匹配 |
-| S12-004 | 模擬交易 UI 改善 — 報價卡片化 | design + engineering | P1 | 即時行情已完成，需改善呈現方式 |
-| S12-005 | 新手引導流程（Onboarding） | product + design | P1 | 第一次使用的用戶不知道從哪開始 |
-| S12-012 | 遊戲化成就系統 — 連續記帳 Streak | product + engineering | P2 | 🆕 提升留存率，研究顯示遊戲化可提升互動 45% |
+| S12-012 | 遊戲化成就系統 — 連續記帳 Streak | product + engineering | P2 | 提升留存率，研究顯示遊戲化可提升互動 45% |
+| S12-014 | 存錢目標功能 — UX 原型 | product + design | P2 | 🆕 Daak「存錢罐」驗證需求，結合投資學習形成完整旅程 |
 | S12-006 | 學習模組內容擴充 | product | P2 | 目前只有基礎課程 |
 | S12-007 | PWA 離線支援 | engineering | P2 | 讓用戶在沒網路時仍可記帳 |
 | S12-008 | 效能優化 — 首頁載入速度 | engineering | P2 | 目前 LCP > 2.5s |
-| S12-013 | 月度財務報告 MVP | product + engineering | P2 | 🆕 自動產生消費趨勢分析與 AI 摘要 |
+| S12-013 | 月度財務報告 MVP | product + engineering | P2 | 自動產生消費趨勢分析與 AI 摘要 |
 | S12-009 | 錯誤監控整合（Sentry） | operations | P3 | 目前錯誤追蹤不完整 |
 | S12-010 | A/B 測試框架建立 | growth + engineering | P3 | 為後續優化做準備 |
+| S12-015 | 銀行對帳單 CSV 匯入 — 技術調研 | engineering + product | P3 | 🆕 Open Banking 前置，先研究台灣主流銀行 CSV 格式 |
 
 ## 🟢 已完成（Done）
 

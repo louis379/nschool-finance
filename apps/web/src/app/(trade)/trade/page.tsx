@@ -20,25 +20,62 @@ type Stock = {
 
 const fallbackStocks: Record<MarketTab, Stock[]> = {
   tw: [
-    { symbol: '2330', name: '台積電',    price: 1025,   change: 15,    changePercent: 1.48,  volume: 28543 },
-    { symbol: '2317', name: '鴻海',      price: 178.5,  change: -2.5,  changePercent: -1.38, volume: 45621 },
-    { symbol: '2454', name: '聯發科',    price: 1580,   change: 30,    changePercent: 1.94,  volume: 8745 },
-    { symbol: '0050', name: '元大台灣50', price: 185.3,  change: 1.2,   changePercent: 0.65,  volume: 12356 },
-    { symbol: '2603', name: '長榮',      price: 198,    change: -5,    changePercent: -2.46, volume: 67890 },
-    { symbol: '2881', name: '富邦金',    price: 89.5,   change: 0.8,   changePercent: 0.90,  volume: 34567 },
+    { symbol: '2330', name: '台積電',    price: 1025,  change: 15,    changePercent: 1.48,  volume: 28543 },
+    { symbol: '2317', name: '鴻海',      price: 178.5, change: -2.5,  changePercent: -1.38, volume: 45621 },
+    { symbol: '2454', name: '聯發科',    price: 1580,  change: 30,    changePercent: 1.94,  volume: 8745 },
+    { symbol: '0050', name: '元大台灣50', price: 185.3, change: 1.2,   changePercent: 0.65,  volume: 12356 },
+    { symbol: '0056', name: '元大高股息', price: 38.5,  change: 0.3,   changePercent: 0.79,  volume: 98765 },
+    { symbol: '2412', name: '中華電',    price: 121.5, change: -0.5,  changePercent: -0.41, volume: 18234 },
+    { symbol: '2882', name: '國泰金',    price: 55.8,  change: 0.6,   changePercent: 1.09,  volume: 56789 },
+    { symbol: '2881', name: '富邦金',    price: 89.5,  change: 0.8,   changePercent: 0.90,  volume: 34567 },
+    { symbol: '2886', name: '兆豐金',    price: 38.2,  change: -0.2,  changePercent: -0.52, volume: 43210 },
+    { symbol: '2891', name: '中信金',    price: 31.5,  change: 0.4,   changePercent: 1.28,  volume: 67890 },
+    { symbol: '3711', name: '日月光投控', price: 158,   change: 3,     changePercent: 1.94,  volume: 12345 },
+    { symbol: '2303', name: '聯電',      price: 55.2,  change: -0.8,  changePercent: -1.43, volume: 87654 },
+    { symbol: '2308', name: '台達電',    price: 342,   change: 5,     changePercent: 1.48,  volume: 9876 },
+    { symbol: '3008', name: '大立光',    price: 2450,  change: -50,   changePercent: -2.00, volume: 3456 },
+    { symbol: '2002', name: '中鋼',      price: 28.5,  change: 0.1,   changePercent: 0.35,  volume: 156789 },
+    { symbol: '1301', name: '台塑',      price: 78.5,  change: -1.2,  changePercent: -1.51, volume: 23456 },
+    { symbol: '2207', name: '和泰車',    price: 680,   change: 10,    changePercent: 1.49,  volume: 4567 },
+    { symbol: '6505', name: '台塑化',    price: 90.2,  change: -0.8,  changePercent: -0.88, volume: 34567 },
+    { symbol: '1303', name: '南亞',      price: 72.1,  change: 0.5,   changePercent: 0.70,  volume: 45678 },
+    { symbol: '2885', name: '元大金',    price: 26.8,  change: 0.3,   changePercent: 1.13,  volume: 78901 },
+    { symbol: '2892', name: '第一金',    price: 25.4,  change: -0.1,  changePercent: -0.39, volume: 56789 },
+    { symbol: '2603', name: '長榮',      price: 198,   change: -5,    changePercent: -2.46, volume: 67890 },
   ],
   us: [
-    { symbol: 'AAPL',  name: 'Apple',    price: 178.72, change: 2.34,  changePercent: 1.33,  volume: 52341 },
-    { symbol: 'MSFT',  name: 'Microsoft',price: 425.52, change: -3.21, changePercent: -0.75, volume: 23456 },
-    { symbol: 'NVDA',  name: 'NVIDIA',   price: 875.28, change: 18.45, changePercent: 2.15,  volume: 89012 },
-    { symbol: 'TSLA',  name: 'Tesla',    price: 245.67, change: -8.9,  changePercent: -3.50, volume: 67890 },
-    { symbol: 'GOOGL', name: 'Alphabet', price: 165.34, change: 1.56,  changePercent: 0.95,  volume: 15678 },
+    { symbol: 'AAPL',  name: 'Apple',          price: 178.72,  change: 2.34,   changePercent: 1.33,  volume: 52341 },
+    { symbol: 'MSFT',  name: 'Microsoft',      price: 425.52,  change: -3.21,  changePercent: -0.75, volume: 23456 },
+    { symbol: 'NVDA',  name: 'NVIDIA',         price: 875.28,  change: 18.45,  changePercent: 2.15,  volume: 89012 },
+    { symbol: 'TSLA',  name: 'Tesla',          price: 245.67,  change: -8.90,  changePercent: -3.50, volume: 67890 },
+    { symbol: 'GOOGL', name: 'Alphabet',       price: 165.34,  change: 1.56,   changePercent: 0.95,  volume: 15678 },
+    { symbol: 'AMZN',  name: 'Amazon',         price: 198.45,  change: 3.21,   changePercent: 1.64,  volume: 34567 },
+    { symbol: 'META',  name: 'Meta',           price: 512.30,  change: -7.80,  changePercent: -1.50, volume: 28901 },
+    { symbol: 'NFLX',  name: 'Netflix',        price: 718.90,  change: 12.40,  changePercent: 1.75,  volume: 9876 },
+    { symbol: 'AMD',   name: 'AMD',            price: 168.25,  change: 4.50,   changePercent: 2.75,  volume: 45678 },
+    { symbol: 'INTC',  name: 'Intel',          price: 24.80,   change: -0.60,  changePercent: -2.36, volume: 78901 },
+    { symbol: 'BRKB',  name: 'Berkshire B',    price: 471.20,  change: 2.10,   changePercent: 0.45,  volume: 5678 },
+    { symbol: 'JPM',   name: 'JPMorgan',       price: 224.50,  change: 1.80,   changePercent: 0.81,  volume: 18234 },
+    { symbol: 'V',     name: 'Visa',           price: 320.15,  change: -1.45,  changePercent: -0.45, volume: 12345 },
+    { symbol: 'DIS',   name: 'Disney',         price: 115.60,  change: 2.30,   changePercent: 2.03,  volume: 23456 },
+    { symbol: 'COIN',  name: 'Coinbase',       price: 198.70,  change: 8.90,   changePercent: 4.69,  volume: 34567 },
   ],
   crypto: [
-    { symbol: 'BTC', name: 'Bitcoin',  price: 87250.5, change: 1250.3, changePercent: 1.45,  volume: 245678 },
-    { symbol: 'ETH', name: 'Ethereum', price: 3420.8,  change: -45.2,  changePercent: -1.30, volume: 123456 },
-    { symbol: 'SOL', name: 'Solana',   price: 185.6,   change: 8.4,    changePercent: 4.74,  volume: 89012 },
-    { symbol: 'BNB', name: 'BNB',      price: 645.3,   change: 12.7,   changePercent: 2.01,  volume: 34567 },
+    { symbol: 'BTC',   name: 'Bitcoin',        price: 87250.5, change: 1250.3, changePercent: 1.45,  volume: 245678 },
+    { symbol: 'ETH',   name: 'Ethereum',       price: 3420.8,  change: -45.2,  changePercent: -1.30, volume: 123456 },
+    { symbol: 'SOL',   name: 'Solana',         price: 185.6,   change: 8.4,    changePercent: 4.74,  volume: 89012 },
+    { symbol: 'BNB',   name: 'BNB',            price: 645.3,   change: 12.7,   changePercent: 2.01,  volume: 34567 },
+    { symbol: 'XRP',   name: 'XRP',            price: 2.45,    change: 0.08,   changePercent: 3.37,  volume: 567890 },
+    { symbol: 'ADA',   name: 'Cardano',        price: 0.85,    change: -0.03,  changePercent: -3.41, volume: 456789 },
+    { symbol: 'DOGE',  name: 'Dogecoin',       price: 0.285,   change: 0.012,  changePercent: 4.40,  volume: 789012 },
+    { symbol: 'AVAX',  name: 'Avalanche',      price: 38.50,   change: 1.20,   changePercent: 3.22,  volume: 78901 },
+    { symbol: 'DOT',   name: 'Polkadot',       price: 8.90,    change: -0.30,  changePercent: -3.26, volume: 123456 },
+    { symbol: 'LINK',  name: 'Chainlink',      price: 18.75,   change: 0.85,   changePercent: 4.74,  volume: 89012 },
+    { symbol: 'UNI',   name: 'Uniswap',        price: 12.40,   change: 0.55,   changePercent: 4.64,  volume: 45678 },
+    { symbol: 'MATIC', name: 'Polygon',        price: 0.72,    change: -0.04,  changePercent: -5.26, volume: 234567 },
+    { symbol: 'LTC',   name: 'Litecoin',       price: 105.30,  change: 2.10,   changePercent: 2.03,  volume: 56789 },
+    { symbol: 'ATOM',  name: 'Cosmos',         price: 9.85,    change: 0.35,   changePercent: 3.69,  volume: 34567 },
+    { symbol: 'ARB',   name: 'Arbitrum',       price: 1.25,    change: -0.06,  changePercent: -4.58, volume: 123456 },
   ],
 };
 
@@ -383,37 +420,60 @@ export default function TradePage() {
 
           {/* Stock list — key prop triggers fade-in animation on tab switch (Webull-style) */}
 
-          {/* Mobile Card List */}
-          <div key={`mobile-${tabKey}`} className="md:hidden space-y-2 animate-fade-in">
+          {/* Mobile Card List — S12-004 卡片化 */}
+          <div key={`mobile-${tabKey}`} className="md:hidden grid grid-cols-2 gap-2.5 animate-fade-in">
             {stocks.map((stock) => {
               const isUp = stock.change >= 0;
               const isFav = favorites.has(stock.symbol);
               return (
-                <div key={stock.symbol} className="flex items-center justify-between py-3 px-1 border-b border-gray-50 last:border-0">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  key={stock.symbol}
+                  className={`relative rounded-2xl p-3.5 flex flex-col gap-2 border ${
+                    isUp
+                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100'
+                      : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-100'
+                  }`}
+                >
+                  {/* Top row: symbol + favorite */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-gray-800 leading-none">{stock.symbol}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5 leading-none truncate max-w-[90px]">{stock.name}</p>
+                    </div>
                     <button
                       onClick={() => toggleFavorite(stock.symbol)}
-                      className="p-1 shrink-0"
+                      className="p-0.5 -mt-0.5 -mr-0.5"
                       aria-label={isFav ? '移除追蹤' : '加入追蹤'}
                     >
-                      <Star className={`w-4 h-4 ${isFav ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}`} />
+                      <Star className={`w-3.5 h-3.5 ${isFav ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
                     </button>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-gray-800">{stock.symbol}</p>
-                      <p className="text-xs text-gray-400 truncate">{stock.name}</p>
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <p className="text-base font-bold text-gray-900 tabular-nums leading-none">
+                      {stock.price.toLocaleString()}
+                    </p>
+                    <div className={`inline-flex items-center gap-0.5 text-[11px] font-semibold mt-0.5 ${isUp ? 'text-up' : 'text-down'}`}>
+                      {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-gray-800 tabular-nums">{stock.price.toLocaleString()}</p>
-                      <div className={`inline-flex items-center gap-0.5 text-xs font-semibold ${isUp ? 'text-up' : 'text-down'}`}>
-                        {isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <button onClick={() => openModal(stock, 'buy')} className="min-h-[36px] px-2.5 rounded-lg bg-up/10 text-up text-xs font-bold hover:bg-up/20 transition-colors">買</button>
-                      <button onClick={() => openModal(stock, 'sell')} className="min-h-[36px] px-2.5 rounded-lg bg-down/10 text-down text-xs font-bold hover:bg-down/20 transition-colors">賣</button>
-                    </div>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-1.5 mt-auto">
+                    <button
+                      onClick={() => openModal(stock, 'buy')}
+                      className="flex-1 py-1.5 rounded-lg bg-up text-white text-xs font-bold hover:bg-green-600 transition-colors active:scale-95"
+                    >
+                      買
+                    </button>
+                    <button
+                      onClick={() => openModal(stock, 'sell')}
+                      className="flex-1 py-1.5 rounded-lg bg-down text-white text-xs font-bold hover:bg-red-600 transition-colors active:scale-95"
+                    >
+                      賣
+                    </button>
                   </div>
                 </div>
               );
