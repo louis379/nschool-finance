@@ -25,8 +25,8 @@
   --color-down: #EF4444;
   --color-down-light: #FEE2E2;
 
-  /* Font */
-  --font-sans: "Noto Sans TC", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Font — uses next/font CSS variables with system fallbacks */
+  --font-sans: var(--font-noto), var(--font-inter), "Noto Sans TC", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Radius */
   --radius-card: 16px;

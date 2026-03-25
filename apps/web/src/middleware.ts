@@ -36,11 +36,17 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session if expired
-  const { data: { user } } = await supabase.auth.getUser();
+  // Refresh session if expired — catch errors so broken sessions don't crash
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    // Session expired or invalid — treat as unauthenticated
+  }
 
-  // Protected routes — redirect to login if not authenticated
-  const protectedPaths = ['/profile', '/trade', '/watchlist'];
+  // Protected routes — only strict profile needs auth, trade is open for guest mode
+  const protectedPaths = ['/profile'];
   const isProtected = protectedPaths.some((p) => path.startsWith(p));
 
   if (isProtected && !user) {

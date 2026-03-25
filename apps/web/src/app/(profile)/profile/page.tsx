@@ -115,13 +115,16 @@ export default function ProfilePage() {
   async function handleLogout() {
     setLoggingOut(true);
     try {
+      // Call server-side logout to properly clear cookies
+      await fetch('/api/auth/logout', { method: 'POST' });
+      // Also sign out on client side
       const supabase = createClient();
       await supabase.auth.signOut();
     } catch {
       // ignore errors, still redirect
     } finally {
-      router.push('/login');
-      router.refresh();
+      // Force hard navigation to clear all client state
+      window.location.href = '/login';
     }
   }
 

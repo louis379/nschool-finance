@@ -1,5 +1,20 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter, Noto_Sans_TC } from 'next/font/google';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+
+const notoSansTC = Noto_Sans_TC({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-noto',
+});
 
 export const metadata: Metadata = {
   title: 'nSchool Finance | 先認知，再投資',
@@ -27,13 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-TW">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="zh-TW" className={`${inter.variable} ${notoSansTC.variable}`}>
       <body className="antialiased">
         {children}
       </body>

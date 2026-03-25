@@ -182,7 +182,10 @@ export async function GET(request: Request) {
       result.crypto = await fetchCryptoData();
     }
 
-    return NextResponse.json({ success: true, data: result });
+    const response = NextResponse.json({ success: true, data: result });
+    // Cache market data for 5 minutes on CDN, 60s on browser
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    return response;
   } catch (error) {
     console.error('Market data error:', error);
     return NextResponse.json(

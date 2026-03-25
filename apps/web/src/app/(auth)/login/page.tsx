@@ -55,14 +55,16 @@ export default function LoginPage() {
           setError('信箱或密碼錯誤');
         } else if (error.message.includes('Email not confirmed')) {
           setError('請先到信箱驗證你的帳號');
+        } else if (error.message.includes('Email logins are disabled')) {
+          setError('目前僅支援 Google 登入，請使用 Google 帳號登入');
         } else {
           setError(error.message);
         }
         return;
       }
 
-      router.push('/');
-      router.refresh();
+      // Hard redirect to ensure middleware picks up the new session
+      window.location.href = '/';
     } catch {
       setError('登入失敗，請稍後再試');
     } finally {

@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import AssetOverview from '@/components/dashboard/AssetOverview';
 import QuickActions from '@/components/dashboard/QuickActions';
-import RecentTransactions from '@/components/dashboard/RecentTransactions';
-import MarketOverview from '@/components/dashboard/MarketOverview';
-import FinancialHealth from '@/components/dashboard/FinancialHealth';
 import { Sparkles, CalendarDays, X, Loader2 } from 'lucide-react';
+
+// Lazy load below-the-fold components
+const RecentTransactions = dynamic(() => import('@/components/dashboard/RecentTransactions'), { ssr: false });
+const MarketOverview = dynamic(() => import('@/components/dashboard/MarketOverview'), { ssr: false });
+const FinancialHealth = dynamic(() => import('@/components/dashboard/FinancialHealth'), { ssr: false });
 
 function getGreeting() {
   const hour = new Date().getHours();

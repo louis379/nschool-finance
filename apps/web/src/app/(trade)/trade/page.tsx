@@ -68,7 +68,7 @@ const fallbackTW: Stock[] = [
   { symbol: '0056', name: '元大高股息', price: 38.5,  change: 0.3,  changePercent: 0.79,  volume: 987654 },
 ];
 
-const PAGE_SIZE = 80;
+const PAGE_SIZE = 50;
 
 const tabLabels: Record<MarketTab, string> = { tw: '台股', us: '美股', crypto: '加密貨幣' };
 
@@ -522,6 +522,24 @@ export default function TradePage() {
                   );
                 })}
           </div>
+
+          {/* Mobile Load More */}
+          {hasMore && (
+            <div className="md:hidden flex justify-center pt-3 pb-1">
+              <button
+                onClick={loadMore}
+                disabled={twLoadingMore}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-sm font-medium text-gray-600 transition-colors disabled:opacity-50"
+              >
+                {twLoadingMore ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+                {twLoadingMore ? '載入中…' : `載入更多（${twStocks.length} / ${twTotal}）`}
+              </button>
+            </div>
+          )}
 
           {/* Desktop Table */}
           <div key={`desktop-${tabKey}`} className="hidden md:block overflow-x-auto animate-fade-in">
