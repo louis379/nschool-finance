@@ -1,22 +1,92 @@
 import { NextResponse } from 'next/server';
 
-// TWSE (Taiwan Stock Exchange) open data for indices
+type TwStock = {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  volume: number;
+};
+
+// Fetch ALL TWSE listed stocks via STOCK_DAY_ALL
+async function fetchTWSEAllStocks(): Promise<TwStock[]> {
+  try {
+    const res = await fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL', {
+      next: { revalidate: 300 },
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!res.ok) return [];
+    const data: { Code: string; Name: string; ClosingPrice: string; Change: string; TradeVolume: string }[] = await res.json();
+
+    const results: TwStock[] = [];
+    for (const item of data) {
+      const code = item.Code?.trim();
+      const name = item.Name?.trim();
+      if (!code || !name) continue;
+      const price = parseFloat(item.ClosingPrice?.replace(/,/g, '') || '0');
+      if (price <= 0) continue; // skip suspended/no-trade stocks
+      const change = parseFloat(item.Change?.replace(/,/g, '') || '0');
+      const volume = parseInt(item.TradeVolume?.replace(/,/g, '') || '0');
+      results.push({
+        symbol: code,
+        name,
+        price,
+        change,
+        changePercent: price > 0 ? (change / (price - change)) * 100 : 0,
+        volume: Math.round(volume / 1000), // convert shares to lots (張)
+      });
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+// Fetch TPEx (上櫃) stocks
+async function fetchTPExAllStocks(): Promise<TwStock[]> {
+  try {
+    const res = await fetch('https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes', {
+      next: { revalidate: 300 },
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!res.ok) return [];
+    const data: { SecuritiesCompanyCode: string; CompanyName: string; Close: string; Change: string; TradingShares: string }[] = await res.json();
+
+    const results: TwStock[] = [];
+    for (const item of data) {
+      const code = item.SecuritiesCompanyCode?.trim();
+      const name = item.CompanyName?.trim();
+      if (!code || !name) continue;
+      const price = parseFloat(item.Close?.replace(/,/g, '') || '0');
+      if (price <= 0) continue;
+      const change = parseFloat(item.Change?.replace(/,/g, '') || '0');
+      const volume = parseInt(item.TradingShares?.replace(/,/g, '') || '0');
+      results.push({
+        symbol: code,
+        name,
+        price,
+        change,
+        changePercent: price > 0 ? (change / (price - change)) * 100 : 0,
+        volume: Math.round(volume / 1000),
+      });
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+// TWSE market index
 async function fetchTWSEIndex(): Promise<{ symbol: string; name: string; price: number; change: number; changePercent: number }[]> {
   try {
-    const res = await fetch('https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL', {
+    const res = await fetch('https://openapi.twse.com.tw/v1/exchangeReport/MI_INDEX', {
       next: { revalidate: 300 },
     });
     if (!res.ok) return [];
-    // TWSE BWIBBU provides P/E and dividend data, not ideal for index
-    // Use MI_INDEX for market index
-    const indexRes = await fetch('https://openapi.twse.com.tw/v1/exchangeReport/MI_INDEX', {
-      next: { revalidate: 300 },
-    });
-    if (!indexRes.ok) return [];
-    const indexData = await indexRes.json();
-
+    const data: { 指數: string; 收盤指數: string; 漲跌點數: string }[] = await res.json();
     const results: { symbol: string; name: string; price: number; change: number; changePercent: number }[] = [];
-    for (const item of indexData) {
+    for (const item of data) {
       if (item['指數'] === '發行量加權股價指數') {
         const price = parseFloat(item['收盤指數']?.replace(/,/g, '') || '0');
         const change = parseFloat(item['漲跌點數']?.replace(/,/g, '') || '0');
@@ -37,79 +107,31 @@ async function fetchTWSEIndex(): Promise<{ symbol: string; name: string; price: 
   }
 }
 
-// Fetch top Taiwan stocks from TWSE
-async function fetchTWSEStocks(): Promise<{ symbol: string; name: string; price: number; change: number; changePercent: number; volume: number }[]> {
+// CoinGecko free API — top 20 coins
+async function fetchCryptoData() {
   try {
-    // Popular TW stocks
-    const symbols = ['2330', '2317', '2454', '0050', '2603', '2881'];
-    const results: { symbol: string; name: string; price: number; change: number; changePercent: number; volume: number }[] = [];
-
-    // Use TWSE stock day API
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-
-    const res = await fetch(`https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL`, {
-      next: { revalidate: 300 },
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      const nameMap: Record<string, string> = {
-        '2330': '台積電', '2317': '鴻海', '2454': '聯發科',
-        '0050': '元大台灣50', '2603': '長榮', '2881': '富邦金',
-      };
-
-      for (const sym of symbols) {
-        const item = data.find((d: { Code: string }) => d.Code === sym);
-        if (item) {
-          const close = parseFloat(item.ClosingPrice?.replace(/,/g, '') || '0');
-          const change = parseFloat(item.Change?.replace(/,/g, '') || '0');
-          const volume = parseInt(item.TradeVolume?.replace(/,/g, '') || '0');
-          if (close > 0) {
-            results.push({
-              symbol: sym,
-              name: nameMap[sym] || item.Name || sym,
-              price: close,
-              change,
-              changePercent: close > 0 ? (change / (close - change)) * 100 : 0,
-              volume: Math.round(volume / 1000), // Convert to lots
-            });
-          }
-        }
-      }
-    }
-
-    return results;
-  } catch {
-    return [];
-  }
-}
-
-// CoinGecko free API for crypto
-async function fetchCryptoData(): Promise<{ symbol: string; name: string; price: number; change: number; changePercent: number; volume: number }[]> {
-  try {
+    const ids = [
+      'bitcoin', 'ethereum', 'solana', 'binancecoin', 'ripple',
+      'cardano', 'dogecoin', 'avalanche-2', 'polkadot', 'chainlink',
+      'uniswap', 'matic-network', 'litecoin', 'cosmos', 'arbitrum',
+      'sui', 'the-open-network', 'optimism', 'render-token', 'injective-protocol',
+    ].join(',');
     const res = await fetch(
-      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,binancecoin&order=market_cap_desc&sparkline=false',
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=false`,
       { next: { revalidate: 120 } }
     );
     if (!res.ok) return [];
-    const data = await res.json();
-
-    const symbolMap: Record<string, string> = {
-      bitcoin: 'BTC', ethereum: 'ETH', solana: 'SOL', binancecoin: 'BNB',
-    };
-
-    return data.map((coin: {
-      id: string; name: string; current_price: number;
-      price_change_24h: number; price_change_percentage_24h: number;
-      total_volume: number;
-    }) => ({
-      symbol: symbolMap[coin.id] || coin.id.toUpperCase(),
+    const data: {
+      id: string; symbol: string; name: string; current_price: number;
+      price_change_24h: number; price_change_percentage_24h: number; total_volume: number;
+    }[] = await res.json();
+    return data.map((coin) => ({
+      symbol: coin.symbol.toUpperCase(),
       name: coin.name,
       price: coin.current_price,
       change: coin.price_change_24h,
       changePercent: coin.price_change_percentage_24h,
-      volume: Math.round(coin.total_volume / 1000000),
+      volume: Math.round(coin.total_volume / 1_000_000),
     }));
   } catch {
     return [];
@@ -119,28 +141,45 @@ async function fetchCryptoData(): Promise<{ symbol: string; name: string; price:
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const market = url.searchParams.get('market') || 'all';
+  const search = url.searchParams.get('search')?.toLowerCase() || '';
+  const page = parseInt(url.searchParams.get('page') || '1');
+  const limit = parseInt(url.searchParams.get('limit') || '100');
 
   try {
-    const result: Record<string, unknown[]> = {};
+    if (market === 'overview') {
+      const [indices, crypto] = await Promise.all([fetchTWSEIndex(), fetchCryptoData()]);
+      return NextResponse.json({
+        success: true,
+        data: [
+          ...(indices.length > 0 ? indices : []),
+          ...(crypto.length > 0 ? crypto.slice(0, 2) : []),
+        ],
+      });
+    }
+
+    const result: Record<string, unknown> = {};
 
     if (market === 'all' || market === 'tw') {
-      const [indices, stocks] = await Promise.all([fetchTWSEIndex(), fetchTWSEStocks()]);
+      const [twse, tpex, indices] = await Promise.all([
+        fetchTWSEAllStocks(),
+        fetchTPExAllStocks(),
+        fetchTWSEIndex(),
+      ]);
+      let allTw = [...twse, ...tpex];
+      if (search) {
+        allTw = allTw.filter(
+          (s) => s.symbol.includes(search) || s.name.toLowerCase().includes(search)
+        );
+      }
+      const total = allTw.length;
+      const start = (page - 1) * limit;
+      result.tw_stocks = allTw.slice(start, start + limit);
+      result.tw_total = total;
       result.tw_indices = indices;
-      result.tw_stocks = stocks;
     }
 
     if (market === 'all' || market === 'crypto') {
       result.crypto = await fetchCryptoData();
-    }
-
-    // For dashboard MarketOverview, combine key data
-    if (market === 'overview') {
-      const [indices, crypto] = await Promise.all([fetchTWSEIndex(), fetchCryptoData()]);
-      const overview = [
-        ...(indices.length > 0 ? indices : []),
-        ...(crypto.length > 0 ? crypto.slice(0, 2) : []),
-      ];
-      return NextResponse.json({ success: true, data: overview });
     }
 
     return NextResponse.json({ success: true, data: result });
