@@ -20,15 +20,16 @@
 
 | # | 任務 | 負責部門 | 優先級 | 備註 |
 |---|------|---------|--------|------|
-| S12-012 | 遊戲化成就系統 — 連續記帳 Streak | product + engineering | P2 | 提升留存率，研究顯示遊戲化可提升互動 45% |
-| S12-014 | 存錢目標功能 — UX 原型 | product + design | P2 | 🆕 Daak「存錢罐」驗證需求，結合投資學習形成完整旅程 |
+| S12-012 | 遊戲化成就系統 — 連續記帳 Streak | product + engineering | P2 | 提升留存率，研究顯示遊戲化可提升互動 45%。🔄 結合社交排行榜（理財挑戰 PK）可進一步提升 Gen Z 參與度 |
+| S12-014 | 存錢目標功能 — UX 原型 | product + design | P2 | Daak「存錢罐」驗證需求，結合投資學習形成完整旅程 |
+| S12-016 | 分帳功能 — 需求調研與競品分析 | product | P2 | 🆕 Gen Z 核心社交需求，Splitwise/OweTracker 為參考；調研用戶分帳場景和頻率 |
 | S12-006 | 學習模組內容擴充 | product | P2 | 目前只有基礎課程 |
 | S12-007 | PWA 離線支援 | engineering | P2 | 讓用戶在沒網路時仍可記帳 |
 | S12-008 | 效能優化 — 首頁載入速度 | engineering | P2 | 目前 LCP > 2.5s |
 | S12-013 | 月度財務報告 MVP | product + engineering | P2 | 自動產生消費趨勢分析與 AI 摘要 |
 | S12-009 | 錯誤監控整合（Sentry） | operations | P3 | 目前錯誤追蹤不完整 |
 | S12-010 | A/B 測試框架建立 | growth + engineering | P3 | 為後續優化做準備 |
-| S12-015 | 銀行對帳單 CSV 匯入 — 技術調研 | engineering + product | P3 | 🆕 Open Banking 前置，先研究台灣主流銀行 CSV 格式 |
+| S12-015 | 銀行對帳單 CSV 匯入 — 技術調研 | engineering + product | P3 | Open Banking 前置，先研究台灣主流銀行 CSV 格式 |
 
 ## 🟢 已完成（Done）
 
