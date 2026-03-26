@@ -89,12 +89,27 @@ function usePortfolioStats() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('nschool-accounts');
-      if (raw) {
-        const accounts = JSON.parse(raw);
-        const total = accounts.reduce((s: number, a: { balance: number }) => s + a.balance, 0);
-        setPortfolio({ total, returnPct: total > 0 ? ((total - 1000000) / 1000000) * 100 : 0 });
-      }
+      // Calculate from accounts (real balances)
+      const accRaw = localStorage.getItem('nschool-accounts');
+      const accounts = accRaw ? JSON.parse(accRaw) : [];
+      const accountTotal = accounts.reduce((s: number, a: { balance: number }) => s + a.balance, 0);
+
+      // Calculate from trading holdings (simulated portfolio)
+      const holdRaw = localStorage.getItem('nschool-holdings');
+      const holdings = holdRaw ? JSON.parse(holdRaw) : [];
+      const balRaw = localStorage.getItem('nschool-balance');
+      const tradeBalance = balRaw ? parseFloat(balRaw) : 100000;
+
+      const holdingsValue = holdings.reduce((s: number, h: { currentPrice: number; qty: number }) => s + h.currentPrice * h.qty, 0);
+      const invested = holdings.reduce((s: number, h: { avgCost: number; qty: number }) => s + h.avgCost * h.qty, 0);
+
+      const total = accountTotal > 0 ? accountTotal : tradeBalance + holdingsValue;
+      const initialCapital = 100000; // simulated starting capital
+      const returnPct = invested > 0
+        ? ((holdingsValue - invested) / invested) * 100
+        : 0;
+
+      setPortfolio({ total, returnPct });
     } catch {}
   }, []);
 
