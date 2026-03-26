@@ -79,6 +79,11 @@ export default function TransactionsPage() {
   const [ocrPreview, setOcrPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Batch import state (bank screenshot)
+  type OcrTransaction = { date: string; description: string; amount: number; type: string; category_suggestion: string; selected: boolean };
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchTxs, setBatchTxs] = useState<OcrTransaction[]>([]);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem('nschool-transactions');
@@ -224,22 +229,35 @@ export default function TransactionsPage() {
 
         if (res.ok) {
           const data = await res.json();
-          // Auto-fill form with OCR results
-          if (data.amount) setFormAmount(Math.abs(data.amount).toString());
-          if (data.description) setFormDesc(data.description);
-          if (data.category && categoryConfig[data.category as CategoryKey]) {
-            setFormCategory(data.category as CategoryKey);
+
+          // If multiple transactions found, show batch import modal
+          if (data.transactions && data.transactions.length > 1) {
+            const txsWithSelection = data.transactions.map((t: { date: string; description: string; amount: number; type: string; category_suggestion: string }) => ({
+              ...t,
+              selected: true,
+            }));
+            setBatchTxs(txsWithSelection);
+            setShowOcrModal(false);
+            setShowBatchModal(true);
+            showToast(`辨識到 ${data.transactions.length} 筆交易`);
+          } else {
+            // Single transaction: auto-fill form
+            if (data.amount) setFormAmount(Math.abs(data.amount).toString());
+            if (data.description) setFormDesc(data.description);
+            if (data.category && categoryConfig[data.category as CategoryKey]) {
+              setFormCategory(data.category as CategoryKey);
+            }
+            setFormType(data.amount < 0 ? 'expense' : 'income');
+            setShowOcrModal(false);
+            setShowAddModal(true);
+            showToast('OCR 辨識完成，請確認資料');
           }
-          setFormType(data.amount < 0 ? 'expense' : 'income');
-          setShowOcrModal(false);
-          setShowAddModal(true);
-          showToast('OCR 辨識完成，請確認資料');
         } else {
-          showToast('OCR 辨識失敗，請手動輸入');
+          showToast('辨識失敗，請手動輸入');
           setShowOcrModal(false);
         }
       } catch {
-        showToast('OCR 辨識失敗，請手動輸入');
+        showToast('辨識失敗，請手動輸入');
         setShowOcrModal(false);
       } finally {
         setOcrLoading(false);
@@ -247,6 +265,31 @@ export default function TransactionsPage() {
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  function toggleBatchTx(index: number) {
+    setBatchTxs((prev) => prev.map((t, i) => i === index ? { ...t, selected: !t.selected } : t));
+  }
+
+  function handleBatchImport() {
+    const selected = batchTxs.filter((t) => t.selected);
+    if (selected.length === 0) return;
+
+    const newTxs: Transaction[] = selected.map((t, i) => ({
+      id: `${Date.now()}-${i}`,
+      category: (categoryConfig[t.category_suggestion as CategoryKey] ? t.category_suggestion : (t.amount < 0 ? '購物' : '薪資')) as CategoryKey,
+      description: t.description || t.category_suggestion || '銀行交易',
+      amount: t.amount,
+      date: t.date || todayStr(),
+      account: formAccount,
+    }));
+
+    const updated = [...newTxs, ...transactions].sort((a, b) => b.date.localeCompare(a.date));
+    setTransactions(updated);
+    persist(updated);
+    setShowBatchModal(false);
+    setBatchTxs([]);
+    showToast(`✅ 已匯入 ${selected.length} 筆交易`);
   }
 
   return (
@@ -263,7 +306,7 @@ export default function TransactionsPage() {
               onClick={() => setShowOcrModal(true)}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 text-white text-sm font-medium shadow-md shadow-sky-400/30 hover:bg-sky-600 transition-colors"
             >
-              <Camera className="w-4 h-4" /> OCR 掃描
+              <Camera className="w-4 h-4" /> 截圖匯入
             </button>
             <button
               onClick={openModal}
@@ -451,7 +494,7 @@ export default function TransactionsPage() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop" onClick={() => { if (!ocrLoading) setShowOcrModal(false); }} />
           <div className="relative bg-white rounded-b-3xl md:rounded-2xl w-full max-w-sm p-6 pt-[max(1.5rem,env(safe-area-inset-top))] shadow-2xl modal-content">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-gray-800">OCR 掃描收據</h3>
+              <h3 className="text-lg font-bold text-gray-800">截圖匯入</h3>
               <button onClick={() => setShowOcrModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
@@ -467,7 +510,7 @@ export default function TransactionsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-sm text-gray-500 text-center">拍照或上傳收據，AI 自動辨識金額與分類</p>
+                <p className="text-sm text-gray-500 text-center">上傳銀行 APP 截圖或收據，AI 自動辨識所有交易</p>
 
                 <input
                   ref={fileInputRef}
@@ -505,6 +548,88 @@ export default function TransactionsPage() {
                 <p className="text-xs text-gray-400 text-center">支援 JPG、PNG 格式</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Batch Import Modal */}
+      {showBatchModal && (
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm modal-backdrop" onClick={() => setShowBatchModal(false)} />
+          <div className="relative bg-white rounded-b-3xl md:rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] overflow-hidden flex flex-col modal-content">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">確認匯入交易</h3>
+                <p className="text-xs text-gray-400 mt-0.5">AI 從截圖辨識到 {batchTxs.length} 筆交易，勾選要匯入的</p>
+              </div>
+              <button onClick={() => setShowBatchModal(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {batchTxs.map((tx, i) => {
+                const isExp = tx.amount < 0;
+                return (
+                  <label
+                    key={i}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                      tx.selected
+                        ? 'border-primary-300 bg-primary-50/50'
+                        : 'border-gray-100 bg-gray-50/50 opacity-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={tx.selected}
+                      onChange={() => toggleBatchTx(i)}
+                      className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-800 truncate">{tx.description || '未知交易'}</p>
+                        <p className={`text-sm font-bold tabular-nums shrink-0 ml-2 ${isExp ? 'text-down' : 'text-up'}`}>
+                          {isExp ? '-' : '+'}NT$ {Math.abs(tx.amount).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-gray-400">{tx.date || '未知日期'}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{tx.category_suggestion || '未分類'}</span>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="p-4 border-t border-gray-100 shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm text-gray-500">
+                  已選 <span className="font-bold text-primary-600">{batchTxs.filter((t) => t.selected).length}</span> 筆
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setBatchTxs((prev) => prev.map((t) => ({ ...t, selected: true })))}
+                    className="text-xs text-primary-500 hover:underline"
+                  >
+                    全選
+                  </button>
+                  <button
+                    onClick={() => setBatchTxs((prev) => prev.map((t) => ({ ...t, selected: false })))}
+                    className="text-xs text-gray-400 hover:underline"
+                  >
+                    取消全選
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={handleBatchImport}
+                disabled={batchTxs.filter((t) => t.selected).length === 0}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold text-sm shadow-lg shadow-primary-400/30 hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                匯入 {batchTxs.filter((t) => t.selected).length} 筆交易
+              </button>
+            </div>
           </div>
         </div>
       )}
