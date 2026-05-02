@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Eye, Star, TrendingUp, TrendingDown, Plus, X, Search } from 'lucide-react';
+import { Bell, Eye, Star, TrendingUp, TrendingDown, Plus, X, Search } from 'lucide-react';
 import Link from 'next/link';
+import AlertDialog from './AlertDialog';
 
 type Stock = {
   symbol: string;
@@ -38,6 +39,7 @@ export default function WatchlistPage() {
   const [favorites, setFavorites] = useState<string[]>(defaultFavorites);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [alertTarget, setAlertTarget] = useState<Stock | null>(null);
 
   useEffect(() => {
     try {
@@ -190,6 +192,14 @@ export default function WatchlistPage() {
                     <div className="flex items-center gap-1.5">
                       <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                       <button
+                        onClick={() => setAlertTarget(stock)}
+                        className="p-1.5 rounded-lg text-gray-300 hover:text-primary-500 hover:bg-primary-50 transition-colors"
+                        aria-label="設警示"
+                        title="設警示"
+                      >
+                        <Bell className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => removeFavorite(stock.symbol)}
                         className="p-1.5 rounded-lg text-gray-200 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
                         aria-label="移除追蹤"
@@ -208,6 +218,16 @@ export default function WatchlistPage() {
           共追蹤 {watchedStocks.length} 支股票 · 觀察名單與交易頁同步
         </p>
       </div>
+
+      {alertTarget && (
+        <AlertDialog
+          symbol={alertTarget.symbol}
+          name={alertTarget.name}
+          market={alertTarget.market}
+          isOpen={alertTarget !== null}
+          onClose={() => setAlertTarget(null)}
+        />
+      )}
     </AppLayout>
   );
 }
