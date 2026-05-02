@@ -1,0 +1,10 @@
+# Factory v2 artifacts (留在 worktree 但不進 PR)
+.heartbeat
+.done
+.stuck
+.ask
+.stuck.try-*.log
+.factory/
+node_modules/
+.next/
+dist/
