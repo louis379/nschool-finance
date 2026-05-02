@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import { createClient } from '@/lib/supabase/client';
+import PnlCurveCard from './PnlCurveCard';
 import {
   User, Settings, Shield, Bell, HelpCircle, LogOut,
   Star, BookOpen, BarChart3, Receipt, TrendingUp, Award, LucideIcon,
@@ -247,6 +248,9 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* PnL Curve */}
+        <PnlCurveCard />
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
